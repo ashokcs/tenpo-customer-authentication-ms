@@ -32,6 +32,5 @@ CREATE TABLE customer_challenge(
     created                 TIMESTAMP NOT NULL,
     updated                 TIMESTAMP NOT NULL,
     CONSTRAINT customer_challenge_pk PRIMARY KEY(id),
-    FOREIGN KEY (bank_id) REFERENCES bank(id),
-    FOREIGN KEY (type_id) REFERENCES account_type(id)
+    FOREIGN KEY (transaction_context_id) REFERENCES customer_transaction_context(id),
 );
