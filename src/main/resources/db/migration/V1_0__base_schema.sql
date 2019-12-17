@@ -1,13 +1,3 @@
-CREATE TABLE customer_login(
-    id              UUID NOT NULL,
-    pan_hash        VARCHAR(100) NOT NULL,
-    user_name       VARCHAR(100) NOT NULL,
-    user_attempt    INTEGER NOT NULL,
-    created         TIMESTAMP NOT NULL,
-    updated         TIMESTAMP NOT NULL,
-    CONSTRAINT customer_login_pk PRIMARY KEY(id),
-);
-
 CREATE TABLE customer_transaction_context(
     id              UUID NOT NULL,
     external_id     UUID NOT NULL ,
@@ -18,6 +8,7 @@ CREATE TABLE customer_transaction_context(
     tx_country_code INTEGER NOT NULL,
     tx_place_name   VARCHAR(100) NOT NULL,
     tx_other        VARCHAR(200) NOT NULL,
+    tx_token        VARCHAR(200) NOT NULL,
     created         TIMESTAMP NOT NULL,
     updated         TIMESTAMP NOT NULL,
     CONSTRAINT customer_transaction_context_pk PRIMARY KEY(id),
