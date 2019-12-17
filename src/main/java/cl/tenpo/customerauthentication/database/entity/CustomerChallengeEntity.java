@@ -17,7 +17,10 @@ public class CustomerChallengeEntity {
 
     @Id
     private UUID id;
-    private UUID transactionContextId;
+
+    @OneToMany(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transaction_context_id")
+    private CustomerTransactionContextEntity customerTransaction;
 
     @Enumerated(EnumType.STRING)
     private ChallengeType challengeType;

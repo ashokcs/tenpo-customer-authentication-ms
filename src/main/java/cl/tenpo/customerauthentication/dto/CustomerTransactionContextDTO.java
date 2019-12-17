@@ -1,21 +1,20 @@
-package cl.tenpo.customerauthentication.database.entity;
+package cl.tenpo.customerauthentication.dto;
 
 import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
-import lombok.Data;
-import lombok.ToString;
+import lombok.*;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Data
-@Entity
-@ToString
-@Table(name = "customer_transaction_context")
-public class CustomerTransactionContextEntity {
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+public class CustomerTransactionContextDTO {
 
-    @Id
     private UUID id;
     private UUID externalId;
     private String txType;
@@ -25,10 +24,8 @@ public class CustomerTransactionContextEntity {
     private Integer txCountryCode;
     private String txPlaceName;
     private String txOther;
-
-    @Enumerated(EnumType.STRING)
     private CustomerTransactionStatus status;
-
     private LocalDateTime created;
     private LocalDateTime updated;
+
 }

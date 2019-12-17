@@ -1,5 +1,6 @@
 package cl.tenpo.customerauthentication.api.dto;
 
+import cl.tenpo.customerauthentication.model.ChallengeType;
 import lombok.*;
 
 import java.util.UUID;
@@ -11,7 +12,7 @@ import java.util.UUID;
 @Builder
 public class CreateChallengeRequest {
     private UUID externalId;
-    private String challengeType;
+    private ChallengeType challengeType;
     private TransactionContext transactionContext;
     private String callbackUri;
 }
