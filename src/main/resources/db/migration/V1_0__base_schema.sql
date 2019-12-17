@@ -25,4 +25,5 @@ CREATE TABLE customer_challenge(
     updated                 TIMESTAMP NOT NULL,
     CONSTRAINT customer_challenge_pk PRIMARY KEY(id),
     FOREIGN KEY (transaction_context_id) REFERENCES customer_transaction_context(id),
+    UNIQUE (transaction_context_id,challenge_type)
 );
