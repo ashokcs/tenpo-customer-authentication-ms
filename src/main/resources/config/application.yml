@@ -22,7 +22,7 @@ spring:
         jdbc:
           lob:
             non_contextual_creation: true
-        default_schema: payment_online
+        default_schema: customer_authentication
 kafka:
   listen:
     auto:

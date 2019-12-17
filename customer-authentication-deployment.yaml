@@ -1,0 +1,48 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: customer-authentication
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-authentication-deployment
+  namespace: customer-authentication
+  labels:
+    app: customer-authentication
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: customer-authentication
+  template:
+    metadata:
+      labels:
+        app: customer-authentication
+    spec:
+      containers:
+        - name: customer-authentication
+          image: _IMAGE_
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: NEW_RELIC_APP_NAME
+              value: "customer-authentication-ms"
+            - name: SPRING_PROFILES_ACTIVE
+              value: _SPRING_PROFILES_ACTIVE_
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: databasecredentials
+                  key: db_pwd_tenpo_customer_authentication
+          resources:
+            requests:
+              cpu: "100m"
+            limits:
+              cpu: "700m"
+      imagePullSecrets:
+        - name: customer-authentication

@@ -1,19 +1,7 @@
 server:
     port: 8081
-logging:
-    level:
-        cl:
-            tenpo:
-                payment:
-                    online: DEBUG
-        org:
-            springframework:
-                web:
-                    filter:
-                        CommonsRequestLoggingFilter: DEBUG
     pattern:
         level: '%X{traceId} %5p'
-
 spring:
     datasource:
         driverClassName: org.postgresql.Driver
@@ -39,4 +27,4 @@ spring:
     kafka:
         bootstrap-servers: 137.116.88.31:9092
         consumer:
-            group-id: payment-online
+            group-id: customer-authentication

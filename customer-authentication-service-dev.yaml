@@ -1,0 +1,49 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: customer-authentication-ms
+  namespace: customer-authentication
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+spec:
+  selector:
+    app: customer-authentication
+  type: LoadBalancer
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: config-server-ms
+  namespace: customer-authentication
+spec:
+  type: ExternalName
+  externalName: config-server-ms.default.svc.cluster.local
+  ports:
+    - port: 8080
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: user-ms
+  namespace: customer-authentication
+spec:
+  type: ExternalName
+  externalName: user-ms.default.svc.cluster.local
+  ports:
+    - port: 8080
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: notification-ms
+  namespace: customer-authentication
+spec:
+  type: ExternalName
+  externalName: notification-ms.default.svc.cluster.local
+  ports:
+    - port: 8080
+---
