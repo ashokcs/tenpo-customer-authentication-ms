@@ -34,7 +34,7 @@ public class CustomerAuthenticactionController {
         return ResponseEntity.ok(null);
     }
 
-    @PostMapping(value = "/login")
+    @PostMapping(value = "/callback")
     public ResponseEntity callBackAuthentication(){
         return ResponseEntity.ok(null);
     }

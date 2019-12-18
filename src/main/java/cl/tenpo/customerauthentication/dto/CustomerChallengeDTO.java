@@ -14,11 +14,13 @@ import java.util.UUID;
 @NoArgsConstructor
 @Builder
 public class CustomerChallengeDTO {
+
     private UUID id;
-    private CustomerTransactionContextDTO transactionContextId;
+    private CustomerTransactionContextDTO customerTransaction;
     private ChallengeType challengeType;
     private String callbackUri;
     private ChallengeStatus status;
     private LocalDateTime created;
     private LocalDateTime updated;
+
 }

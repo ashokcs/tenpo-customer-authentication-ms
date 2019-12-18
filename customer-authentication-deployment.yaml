@@ -38,7 +38,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: databasecredentials
-                  key: db_pwd_tenpo_customer_authentication
+                  key: db_pwd_customer_authentication
           resources:
             requests:
               cpu: "100m"

@@ -7,6 +7,8 @@ import lombok.ToString;
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -25,10 +27,12 @@ public class CustomerTransactionContextEntity {
     private Integer txCountryCode;
     private String txPlaceName;
     private String txOther;
-
     @Enumerated(EnumType.STRING)
     private CustomerTransactionStatus status;
-
     private LocalDateTime created;
     private LocalDateTime updated;
+
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "customerTransaction")
+    private List<CustomerChallengeEntity> challenge;
+
 }

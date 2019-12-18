@@ -18,7 +18,7 @@ public class CustomerChallengeEntity {
     @Id
     private UUID id;
 
-    @OneToMany(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "transaction_context_id")
     private CustomerTransactionContextEntity customerTransaction;
 

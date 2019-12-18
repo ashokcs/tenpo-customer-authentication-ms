@@ -11,15 +11,21 @@ import cl.tenpo.customerauthentication.exception.TenpoException;
 import cl.tenpo.customerauthentication.model.ChallengeStatus;
 import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.expression.ParseException;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+@Service
+@Slf4j
 public class CustomerChallengeServiceImpl implements CustomerChallengeService {
 
     @Autowired
@@ -34,12 +40,25 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
 
 
     @Override
-    public void createChallenge(CreateChallengeRequest createChallengeRequest) {
+    public Optional<CustomerTransactionContextDTO> createChallenge(CreateChallengeRequest createChallengeRequest) {
+
         Optional<CustomerTransactionContextDTO> customerTrx = findByExternalId(createChallengeRequest.getExternalId());
 
-        if(!customerTrx.isPresent()) {
+        if (customerTrx.isPresent()) {
+            //Agregar un challenge a una trx existente
+            createCustomerChallenge(
+                    CustomerChallengeDTO.builder()
+                            .id(UUID.randomUUID())
+                            .customerTransaction(customerTrx.get())
+                            .created(LocalDateTime.now())
+                            .updated(LocalDateTime.now())
+                            .challengeType(createChallengeRequest.getChallengeType())
+                            .status(ChallengeStatus.OPEN)
+                            .build()
+            );
+        } else {
             // Si no existe se crea
-            Optional<CustomerTransactionContextDTO> customerTransactionContextDTO =  createTransactionContext(CustomerTransactionContextDTO.builder()
+            customerTrx =  createTransactionContext(CustomerTransactionContextDTO.builder()
             .id(UUID.randomUUID())
                     .externalId(createChallengeRequest.getExternalId())
                     .txType(createChallengeRequest.getTransactionContext().getTxType())
@@ -54,33 +73,18 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
                     .updated(LocalDateTime.now())
             .build());
 
-            if(customerTransactionContextDTO.isPresent()){
-                createCustomerChallenge(
-                        CustomerChallengeDTO.builder()
-                                .id(UUID.randomUUID())
-                                .transactionContextId(customerTrx.get())
-                                .created(LocalDateTime.now())
-                                .updated(LocalDateTime.now())
-                                .challengeType(createChallengeRequest.getChallengeType())
-                                .status(ChallengeStatus.OPEN)
-                                .build());
-            }
-        }
-        else {
-            //Agregar un challenge a una trx existente
-            createCustomerChallenge(
+            customerTrx.ifPresent(customerTransactionContextDTO -> createCustomerChallenge(
                     CustomerChallengeDTO.builder()
                             .id(UUID.randomUUID())
-                            .transactionContextId(customerTrx.get())
+                            .customerTransaction(customerTransactionContextDTO)
                             .created(LocalDateTime.now())
                             .updated(LocalDateTime.now())
                             .challengeType(createChallengeRequest.getChallengeType())
                             .status(ChallengeStatus.OPEN)
-                            .build()
-            );
+                            .build()));
         }
+        return customerTrx;
     }
-
 
     @Override
     public Optional<CustomerTransactionContextDTO> createTransactionContext(CustomerTransactionContextDTO customerTransactionContextDTO) {
@@ -113,20 +117,33 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
         return customerTransactionContextEntity.map(this::convertToDto);
     }
 
+    @Override
+    public List<CustomerChallengeDTO> findChallengeByTrxId(UUID customerTrxId) {
+        if(customerTrxId == null){
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY,"1200","customerTrxId  no puede ser null");
+        }
+        List<CustomerChallengeEntity> customerChallengeEntityList = customerChallengeRepository.findByCustomerTransactionId(customerTrxId);
+        return customerChallengeEntityList.stream().map(e -> convertToDto(e)).collect(Collectors.toList());
+    }
+
     private CustomerTransactionContextEntity convertToEntity(CustomerTransactionContextDTO value) throws ParseException {
         CustomerTransactionContextEntity post = modelMapper.map(value, CustomerTransactionContextEntity.class);
         return post;
     }
+
     private CustomerTransactionContextDTO convertToDto(CustomerTransactionContextEntity value) throws ParseException {
         CustomerTransactionContextDTO post = modelMapper.map(value, CustomerTransactionContextDTO.class);
         return post;
     }
+
     private CustomerChallengeEntity convertToEntity(CustomerChallengeDTO value) throws ParseException {
         CustomerChallengeEntity post = modelMapper.map(value, CustomerChallengeEntity.class);
         return post;
     }
+
     private CustomerChallengeDTO convertToDto(CustomerChallengeEntity value) throws ParseException {
         CustomerChallengeDTO post = modelMapper.map(value, CustomerChallengeDTO.class);
         return post;
     }
+
 }
