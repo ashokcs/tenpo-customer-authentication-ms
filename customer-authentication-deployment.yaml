@@ -11,7 +11,7 @@ metadata:
   name: customer-authentication-deployment
   namespace: customer-authentication
   labels:
-    app: customer-authentication
+    app: customer-2fa
 
 spec:
   replicas: 1
@@ -21,7 +21,7 @@ spec:
   template:
     metadata:
       labels:
-        app: customer-authentication
+        app: customer-2fa
     spec:
       containers:
         - name: customer-authentication

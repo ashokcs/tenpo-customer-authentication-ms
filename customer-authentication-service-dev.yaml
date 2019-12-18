@@ -7,7 +7,7 @@ metadata:
     service.beta.kubernetes.io/azure-load-balancer-internal: "false"
 spec:
   selector:
-    app: customer-authentication
+    app: customer-2fa
   type: LoadBalancer
   ports:
   - protocol: TCP
