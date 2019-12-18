@@ -99,7 +99,7 @@ dev_deployment:
     IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
     NAMESPACE: customer-authentication
   script:
-    - sed -i "s|_SPRING_PROFILES_ACTIVE_|$SPRING_PROFILES_ACTIVE|g"customer-authentication-deployment.yaml
+    - sed -i "s|_SPRING_PROFILES_ACTIVE_|$SPRING_PROFILES_ACTIVE|g" customer-authentication-deployment.yaml
     - sed -i "s|_IMAGE_|$IMAGE|g" customer-authentication-deployment.yaml
     - >
       kubectl create secret docker-registry $REGISTRY \
@@ -109,7 +109,7 @@ dev_deployment:
         --docker-username=$CI_DEPLOY_USER \
         --docker-password=$CI_DEPLOY_PASSWORD \
         --docker-email=$GITLAB_USER_EMAIL -o yaml | kubectl apply -f -
-    - kubectl delete pods -l app=customer-authentication
+    - kubectl delete pods -l app=customer-2fa
     - kubectl apply -f customer-authentication-deployment.yaml
     - kubectl apply -f customer-authentication-service-dev.yaml
   only:
