@@ -109,7 +109,7 @@ dev_deployment:
         --docker-username=$CI_DEPLOY_USER \
         --docker-password=$CI_DEPLOY_PASSWORD \
         --docker-email=$GITLAB_USER_EMAIL -o yaml | kubectl apply -f -
-    - kubectl delete pods -l app=customer-authentication
+    - kubectl delete pods -l app=customer-2fa
     - kubectl apply -f customer-authentication-deployment.yaml
     - kubectl apply -f customer-authentication-service-dev.yaml
   only:
