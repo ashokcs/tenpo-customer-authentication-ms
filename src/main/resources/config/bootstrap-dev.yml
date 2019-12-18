@@ -1,0 +1,5 @@
+spring:CustomerChallengeDTO
+  cloud:
+    config:
+      profile: dev
+      label: develop

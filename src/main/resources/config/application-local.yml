@@ -1,0 +1,30 @@
+server:
+    port: 8081
+    pattern:
+        level: '%X{traceId} %5p'
+spring:
+    datasource:
+        driverClassName: org.postgresql.Driver
+        url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}
+        username: ${DATABASE_USERNAME}
+        password: ${DATABASE_PASSWORD}
+    flyway:
+        schemas: customer_authentication
+    jackson:
+        property-naming-strategy: SNAKE_CASE
+    jpa:
+        database-platform: org.hibernate.dialect.PostgreSQL9Dialect
+        hibernate:
+            ddl-auto: none
+        properties:
+            hibernate:
+                current_session_context_class: org.springframework.orm.hibernate5.SpringSessionContext
+                dialect: org.hibernate.dialect.PostgreSQLDialect
+                jdbc:
+                    lob:
+                        non_contextual_creation: true
+        show-sql: false
+    kafka:
+        bootstrap-servers: 137.116.88.31:9092
+        consumer:
+            group-id: customer-authentication
