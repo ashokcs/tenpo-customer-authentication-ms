@@ -1,4 +1,4 @@
-spring:CustomerChallengeDTO
+spring:
   cloud:
     config:
       profile: dev
