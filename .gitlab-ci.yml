@@ -99,6 +99,7 @@ dev_deployment:
     IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
     NAMESPACE: customer-authentication
   script:
+    - kubectl apply -f customer-authentication-namespace.yaml
     - sed -i "s|_SPRING_PROFILES_ACTIVE_|$SPRING_PROFILES_ACTIVE|g" customer-authentication-deployment.yaml
     - sed -i "s|_IMAGE_|$IMAGE|g" customer-authentication-deployment.yaml
     - >
@@ -126,6 +127,7 @@ uat_deploy:
     IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
     NAMESPACE: customer-authentication
   script:
+    - kubectl apply -f customer-authentication-namespace.yaml
     - sed -i "s|_SPRING_PROFILES_ACTIVE_|$SPRING_PROFILES_ACTIVE|g" customer-authentication-deployment.yaml
     - sed -i "s|_IMAGE_|$IMAGE|g" customer-authentication-deployment.yaml
     - >
@@ -153,6 +155,7 @@ prod_deploy:
     IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
     NAMESPACE: customer-authentication
   script:
+    - kubectl apply -f customer-authentication-namespace.yaml
     - sed -i "s|_SPRING_PROFILES_ACTIVE_|$SPRING_PROFILES_ACTIVE|g" customer-authentication-deployment.yaml
     - sed -i "s|_IMAGE_|$IMAGE|g" customer-authentication-deployment.yaml
     - >
