@@ -5,9 +5,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * @author Daniel Neciosup <daniel.neciosup@avantica.net>
- */
 @Getter
 @Setter
 @Builder

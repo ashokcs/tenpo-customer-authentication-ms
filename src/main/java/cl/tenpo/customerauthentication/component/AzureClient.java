@@ -25,11 +25,9 @@ public class AzureClient {
     }
 
     private String getAppAccessToken() {
-        return azureADRestClient.getAccessToken(
-                ParamsTokenRequest.builder()
-                        .grantType("client_credentials")
-                        .build()
-        ).getAccessToken();
+        return azureADRestClient.getAccessToken(ParamsTokenRequest.builder()
+                .grantType("client_credentials")
+                .build())
+                .getAccessToken();
     }
-
 }

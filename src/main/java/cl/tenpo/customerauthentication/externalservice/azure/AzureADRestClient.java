@@ -45,7 +45,7 @@ public class AzureADRestClient {
         return response.getBody();
     }
 
-    public TokenResponse getLoginAccessToken(ParamsTokenRequest request) {
+    public TokenResponse getLoginAccessToken(ParamsTokenRequest request) throws TenpoException{
         ResponseEntity<TokenResponse> response;
         try {
             response = restTemplate.postForEntity(
@@ -92,13 +92,11 @@ public class AzureADRestClient {
     }
 
     private String getClientId() {
-        return Optional.ofNullable(azureProperties.getClientId())
-                .orElse(System.getenv("AZURE_CLIENT_ID"));
+        return Optional.ofNullable(azureProperties.getClientId()).orElse(System.getenv("AZURE_CLIENT_ID"));
     }
 
     private String getClientSecret() {
-        return Optional.ofNullable(azureProperties.getClientSecret())
-                .orElse(System.getenv("AZURE_CLIENT_SECRET"));
+        return Optional.ofNullable(azureProperties.getClientSecret()).orElse(System.getenv("AZURE_CLIENT_SECRET"));
     }
 
     public static String[] decode(final String encodedString) {
