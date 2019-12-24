@@ -7,11 +7,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class UsersProps {
-
-    private String filterUserResourcePath;
-    private String getUserByIdResourcePath;
-    private String getUserByRutPath;
-    private String getUserByProvider;
-
+public class CardsProps {
+    private String checkIfCardBelongsToUser;
 }

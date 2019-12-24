@@ -2,15 +2,17 @@ package cl.tenpo.customerauthentication.service.impl;
 
 import cl.tenpo.customerauthentication.api.dto.*;
 import cl.tenpo.customerauthentication.component.AzureClient;
+import cl.tenpo.customerauthentication.dto.JwtDTO;
 import cl.tenpo.customerauthentication.exception.TenpoException;
 import cl.tenpo.customerauthentication.externalservice.azure.dto.TokenResponse;
+import cl.tenpo.customerauthentication.externalservice.cards.CardRestClient;
 import cl.tenpo.customerauthentication.externalservice.user.UserRestClient;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserResponse;
-import cl.tenpo.customerauthentication.externalservice.user.dto.UserResponseDto;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserStateType;
 import cl.tenpo.customerauthentication.model.ChallengeType;
 import cl.tenpo.customerauthentication.service.Customer2faService;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
+import cl.tenpo.customerauthentication.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -33,14 +35,34 @@ public class Customer2faServiceImpl implements Customer2faService {
     private UserRestClient userRestClient;
 
     @Autowired
+    private CardRestClient cardRestClient;
+    @Autowired
     private CustomerChallengeService customerChallengeService;
 
-    @Override
-    public CustomerLoginResponse login(CustomerLoginRequest request) {
 
-        TokenResponse tokenResponse = azureClient.loginUser(request.getEmail(),request.getPassword());
-        
-        return null;
+    @Override
+    public TokenResponse login(CustomerLoginRequest request) {
+        TokenResponse tokenResponse;
+        try {
+            //Try Login in AZ AD
+            tokenResponse = azureClient.loginUser(request.getEmail(),request.getPassword());
+            JwtDTO jwtDTO = JwtUtil.parseJWT(tokenResponse.getAccessToken());
+            Optional<UserResponse> userResponseDto = userRestClient.getUserByProvider(jwtDTO.getOid());
+            // Verificacion de usuario
+            if(userResponseDto.isPresent()){
+               if(!userResponseDto.get().getState().equals(UserStateType.ACTIVE)){
+                   throw new TenpoException(HttpStatus.NOT_FOUND,"1150","El cliente no existe o está bloqueado");
+               }
+               // Si la verificac
+               cardRestClient.checkIfCardBelongsToUser(userResponseDto.get().getId(),request.getPan());
+            }else {
+                throw new TenpoException(HttpStatus.NOT_FOUND,"1150","El cliente no existe o está bloqueado");
+            }
+        } catch (Exception e){
+            throw new TenpoException(HttpStatus.NOT_FOUND,"1150","El cliente no existe o está bloqueado");
+        }
+
+        return tokenResponse;
     }
 
     @Override

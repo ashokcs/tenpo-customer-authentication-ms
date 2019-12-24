@@ -1,7 +1,10 @@
 package cl.tenpo.customerauthentication.api.controller;
 
-import cl.tenpo.customerauthentication.api.dto.*;
-import cl.tenpo.customerauthentication.service.impl.Customer2faServiceImpl;
+import cl.tenpo.customerauthentication.api.dto.AbortChallengeRequest;
+import cl.tenpo.customerauthentication.api.dto.CreateChallengeRequest;
+import cl.tenpo.customerauthentication.api.dto.CustomerLoginRequest;
+import cl.tenpo.customerauthentication.api.dto.ValidateChallengeRequest;
+import cl.tenpo.customerauthentication.service.Customer2faService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,7 +19,7 @@ import java.util.UUID;
 public class CustomerAuthenticactionController {
 
     @Autowired
-    private Customer2faServiceImpl customer2faService;
+    private Customer2faService customer2faService;
 
     @PostMapping(value = "/login")
     public ResponseEntity login(@RequestBody CustomerLoginRequest request) {

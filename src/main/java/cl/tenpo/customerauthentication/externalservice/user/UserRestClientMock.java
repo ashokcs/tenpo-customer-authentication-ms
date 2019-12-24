@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpServerErrorException;
 
+import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -55,5 +56,11 @@ public class UserRestClientMock implements UserRestClient {
         }
 
     }
+
+    @Override
+    public Optional<UserResponse> getUserByProvider(UUID userId, String userToken) throws IOException {
+        return Optional.empty();
+    }
+
 
 }

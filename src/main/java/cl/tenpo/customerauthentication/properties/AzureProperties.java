@@ -19,5 +19,4 @@ public class AzureProperties {
     private String blobStorageDirectory;
     private String blobStorageContainerName;
     private String version;
-    private String userClientId;
 }

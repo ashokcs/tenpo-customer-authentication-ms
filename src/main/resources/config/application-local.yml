@@ -33,10 +33,10 @@ cloud:
         tenantId: cae09fee-473e-48e2-99dc-3b7bf4a97411
         tenantName: tenpodev2.onmicrosoft.com
         version: 1.6
-        clientId: 02c93c97-0b97-48ba-b2d7-97428d8677df
-        clientSecret: 7waH5xiFfOjEkOy9uWrFaitCOXB7OOOR1PanHnj77iE=
-        userFlowName: B2C_1_ROPC_mobile
-        userClientId: 5cba8f4d-b819-4903-a414-732dbd4b8378
+        clientId: 3b1b7133-389f-4e1b-8117-27b7baf6dfd2
+        clientSecret: MkNvSzBhdzQtQUNZM3dvWHFaRFtbQkdbOVBMcmdlRkA=
+        userUrl: https://tenpodev2.b2clogin.com
+        userFlowName: B2C_1_webpay
         blobStorageConnectionString: 'DefaultEndpointsProtocol=https;AccountName=tenpodevstorageaccount;AccountKey=vsKf9z2VVaM7vUdEUjn4VtEMha8n5oheGOP+dX4FhuXET/D6SfzSlVnDe3GtGoJ6qTEZTTBit5Ks8ak1vrDBOw=='
         blobStorageContainerName: tenpodevstoragecontainer
         api-graph:
@@ -56,6 +56,10 @@ krealo:
         users:
             baseUrl: http://user-ms:8080
             getUserByIdResourcePath: ${krealo.cloud.users.baseUrl}/${krealo.cloud.version}/user-management/users/{userId}
+            getUserByProvider: ${krealo.cloud.users.baseUrl}/${krealo.cloud.version}/user-management/identity-provider/{provider}/me
             implement: mock
         notifications:
             implement: real
+        cards:
+            baseUrl: http://cards-ms:8080
+            checkIfCardBelongsToUser: ${krealo.cloud.cards.baseUrl}/${krealo.cloud.version}/cards-management/cards/check-card

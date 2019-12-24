@@ -6,6 +6,7 @@ import cl.tenpo.customerauthentication.externalservice.azure.dto.TokenResponse;
 import cl.tenpo.customerauthentication.properties.AzureApiGraphProperties;
 import cl.tenpo.customerauthentication.properties.AzureProperties;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.codec.binary.Base64;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -22,11 +23,12 @@ import java.util.Optional;
  */
 @Component
 @AllArgsConstructor
+@Slf4j
 public class AzureADRestClient {
+
     private static final String BASIC_TOKEN_FORMAT = "Basic %s";
     private static final String OAUTH_DEFAULT_SCOPE = "https://graph.windows.net/.default";
     private static final String RESPONSE_TYPE = "token id_token";
-
 
     private RestTemplate restTemplate;
     private AzureProperties azureProperties;
@@ -53,8 +55,12 @@ public class AzureADRestClient {
                     new HttpEntity<>(getLoginBody(request), getHeaders()),
                     TokenResponse.class
             );
-        } catch (HttpClientErrorException | HttpServerErrorException exception) {
-            throw new TenpoException(exception, HttpStatus.UNPROCESSABLE_ENTITY, "ERR-CODE");
+        } catch (HttpServerErrorException exception) {
+            log.error("HttoServerError", exception);
+            throw new TenpoException(exception, HttpStatus.UNPROCESSABLE_ENTITY, "Can't Connect");
+        }catch (HttpClientErrorException exception) {
+            log.error("HttpClientError", exception);
+            throw new TenpoException(exception, HttpStatus.UNPROCESSABLE_ENTITY, "Can't login");
         }
         return response.getBody();
     }
@@ -71,8 +77,8 @@ public class AzureADRestClient {
 
     private MultiValueMap<String, String> getLoginBody(ParamsTokenRequest request) {
         MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-        map.add("scope", "openid " + azureProperties.getUserClientId() + " offline_access");
-        map.add("client_id", azureProperties.getUserClientId());
+        map.add("scope", "openid " + azureProperties.getClientId() + " offline_access");
+        map.add("client_id", azureProperties.getClientId());
         map.add("grant_type", request.getGrantType());
         map.add("response_type", RESPONSE_TYPE);
         map.add("username", request.getUsername());
