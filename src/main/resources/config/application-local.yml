@@ -59,7 +59,8 @@ krealo:
             getUserByProvider: ${krealo.cloud.users.baseUrl}/${krealo.cloud.version}/user-management/identity-provider/{provider}/me
             implement: mock
         notifications:
-            implement: real
+            implement: mock
         cards:
             baseUrl: http://cards-ms:8080
             checkIfCardBelongsToUser: ${krealo.cloud.cards.baseUrl}/${krealo.cloud.version}/cards-management/cards/check-card
+            implement: mock
