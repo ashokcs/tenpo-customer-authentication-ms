@@ -7,7 +7,6 @@ import lombok.ToString;
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -19,6 +18,7 @@ public class CustomerTransactionContextEntity {
 
     @Id
     private UUID id;
+    private UUID userId;
     private UUID externalId;
     private String txType;
     private BigDecimal txAmount;

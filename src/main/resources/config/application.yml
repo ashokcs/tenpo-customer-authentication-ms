@@ -31,3 +31,16 @@ kafka:
 logging.level:
   cl.tenpo.customerauthentication: DEBUG
 
+krealo:
+  security:
+    disabledFor:
+      - /**
+  cloud:
+    users:
+      implement: real
+    cards:
+      implement: real
+  external:
+    api:
+      freshdesk:
+        implement: real

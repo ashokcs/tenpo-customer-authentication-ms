@@ -5,9 +5,9 @@ server:
 spring:
     datasource:
         driverClassName: org.postgresql.Driver
-        url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}
-        username: ${DATABASE_USERNAME}
-        password: ${DATABASE_PASSWORD}
+        url: jdbc:postgresql://localhost:5432/tenpo_customer_authentication
+        username: postgres
+        password: postgres
     flyway:
         schemas: customer_authentication
     jackson:
@@ -28,3 +28,39 @@ spring:
         bootstrap-servers: 137.116.88.31:9092
         consumer:
             group-id: customer-authentication
+cloud:
+    azure:
+        tenantId: cae09fee-473e-48e2-99dc-3b7bf4a97411
+        tenantName: tenpodev2.onmicrosoft.com
+        version: 1.6
+        clientId: 3b1b7133-389f-4e1b-8117-27b7baf6dfd2
+        clientSecret: MkNvSzBhdzQtQUNZM3dvWHFaRFtbQkdbOVBMcmdlRkA=
+        userUrl: https://tenpodev2.b2clogin.com
+        userFlowName: B2C_1_webpay
+        blobStorageConnectionString: 'DefaultEndpointsProtocol=https;AccountName=tenpodevstorageaccount;AccountKey=vsKf9z2VVaM7vUdEUjn4VtEMha8n5oheGOP+dX4FhuXET/D6SfzSlVnDe3GtGoJ6qTEZTTBit5Ks8ak1vrDBOw=='
+        blobStorageContainerName: tenpodevstoragecontainer
+        api-graph:
+            base-url: https://graph.windows.net
+            getAccessTokenResourcePath: https://login.microsoftonline.com/${cloud.azure.tenantId}/oauth2/v2.0/token
+            getLoginAccessTokenResourcePath: https://tenpodev2.b2clogin.com/${cloud.azure.tenantId}/oauth2/v2.0/token?p=${cloud.azure.userFlowName}
+            userMaintenanceResourcePath: ${cloud.azure.api-graph.base-url}/${cloud.azure.tenantId}/users
+            changePasswordResourcePath: ${cloud.azure.api-graph.base-url}/${cloud.azure.tenantId}/users
+            resetPasswordResourcePath: ${cloud.azure.api-graph.base-url}/${cloud.azure.tenantId}/users
+krealo:
+    security:
+        disabledFor:
+            - /**
+    cloud:
+        accounts:
+            implement: real
+        users:
+            baseUrl: http://user-ms:8080
+            getUserByIdResourcePath: ${krealo.cloud.users.baseUrl}/${krealo.cloud.version}/user-management/users/{userId}
+            getUserByProvider: ${krealo.cloud.users.baseUrl}/${krealo.cloud.version}/user-management/identity-provider/{provider}/me
+            implement: mock
+        notifications:
+            implement: mock
+        cards:
+            baseUrl: http://cards-ms:8080
+            checkIfCardBelongsToUser: ${krealo.cloud.cards.baseUrl}/${krealo.cloud.version}/cards-management/cards/check-card
+            implement: mock
