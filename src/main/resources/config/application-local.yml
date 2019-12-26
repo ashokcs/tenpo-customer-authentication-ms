@@ -35,7 +35,7 @@ cloud:
         version: 1.6
         clientId: 3b1b7133-389f-4e1b-8117-27b7baf6dfd2
         clientSecret: MkNvSzBhdzQtQUNZM3dvWHFaRFtbQkdbOVBMcmdlRkA=
-        userUrl: https://tenpodev2.b2clogin.com
+        userUrl: https://tenpodev2.b2clo gin.com
         userFlowName: B2C_1_webpay
         blobStorageConnectionString: 'DefaultEndpointsProtocol=https;AccountName=tenpodevstorageaccount;AccountKey=vsKf9z2VVaM7vUdEUjn4VtEMha8n5oheGOP+dX4FhuXET/D6SfzSlVnDe3GtGoJ6qTEZTTBit5Ks8ak1vrDBOw=='
         blobStorageContainerName: tenpodevstoragecontainer
