@@ -55,6 +55,7 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
 
         // Si no existe la transaccion se crea
         if (!customerTrx.isPresent()) {
+            log.info("[createRequestedChallenge] TransactionContext no existe. Creandolo.");
             customerTrx =  createTransactionContext(CustomerTransactionContextDTO.builder()
                     .id(UUID.randomUUID())
                     .userId(userId)
@@ -80,6 +81,7 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
                 .filter(challenge -> { return ChallengeStatus.EXPIRED.equals(challenge.getStatus()); })
                 .findAny();
         if (closedChallenge.isPresent()) {
+            log.info("[createRequestedChallenge] Ya existia un challenge expirado para esa trx.");
             throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.CHALLENGE_EXPIRED);
         }
 
@@ -88,6 +90,7 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
                 .filter(challenge -> { return ChallengeStatus.USED.equals(challenge.getStatus()); })
                 .findAny();
         if (canceledChallenge.isPresent()) {
+            log.info("[createRequestedChallenge] Ya existia un challenge usado para esa trx.");
             throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.CHALLENGE_CANCELED);
         }
 
@@ -102,18 +105,25 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
         // Existe uno reciente?
         if (ongoingChallenge.isPresent()) {
 
+            log.info("[createRequestedChallenge] Hay un challenge reciente de ese tipo.");
+
             // Buscar su codigo
             twoFactorResponse = verifierRestClient.generateTwoFactorCode(userId, ongoingChallenge.get().getId(), null);
 
             // No se ha vencido? Retornarlo.
             if (twoFactorResponse.getId().equals(ongoingChallenge.get().getVerifierId())) {
+                log.info("[createRequestedChallenge] Hay un challenge reciente y vigente. Reutilizandolo.");
                 return NewCustomerChallenge.builder()
                         .challengeId(ongoingChallenge.get().getId())
                         .code(twoFactorResponse.getGeneratedCode())
                         .challengeType(createChallengeRequest.getChallengeType())
                         .build();
+            } else {
+                log.info("[createRequestedChallenge] Challenge reciente pero vencido. Creando uno nuevo.");
             }
         } else {
+            log.info("[createRequestedChallenge] No hay challenge reciente. Creando uno nuevo.");
+
             // Obtener un nuevo codigo y su id
             twoFactorResponse = verifierRestClient.generateTwoFactorCode(userId, null, null);
         }
@@ -129,6 +139,7 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
             .status(ChallengeStatus.OPEN)
             .build()
         );
+        log.info(String.format("[createRequestedChallenge] Challenge nuevo con id:%s", customerChallengeDTO.get().getId()));
 
         return NewCustomerChallenge.builder()
                 .challengeId(customerChallengeDTO.get().getId())

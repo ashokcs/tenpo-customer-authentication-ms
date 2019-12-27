@@ -84,15 +84,19 @@ public class Customer2faServiceImpl implements Customer2faService {
 
     @Override
     public void createChallenge(UUID userId, CreateChallengeRequest request) {
+        log.info(String.format("[createChallenge] Challenge request for user %s [%s]", userId, request));
 
         // Validar que el usuario no esta bloqueado
         UserResponse userResponse = getAndValidateUser(userId);
+        log.info(String.format("[createChallenge] Usuario validado: %s", userResponse.getDocumentNumber()));
 
         // Crear el challenge
         NewCustomerChallenge newCustomerChallenge = customerChallengeService.createRequestedChallenge(userId, request);
+        log.info(String.format("[createChallenge] Challenge creado: [id:%s][code:XXX%s]", newCustomerChallenge.getChallengeId(), newCustomerChallenge.getCode().substring(3)));
 
         // Enviar el challenge al usuario
         sendChallenge(newCustomerChallenge, userResponse);
+        log.info("[createChallenge] Challenge enviado a usuario.");
     }
 
     @Override

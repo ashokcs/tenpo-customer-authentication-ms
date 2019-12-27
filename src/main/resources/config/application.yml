@@ -43,7 +43,6 @@ krealo:
     cards:
       implement: real
     verifier:
-      baseUrl: http://verifier-ms:8080
       implement: real
   external:
     api:
