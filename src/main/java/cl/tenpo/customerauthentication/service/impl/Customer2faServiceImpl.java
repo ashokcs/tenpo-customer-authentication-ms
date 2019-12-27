@@ -59,7 +59,7 @@ public class Customer2faServiceImpl implements Customer2faService {
                    throw new TenpoException(HttpStatus.NOT_FOUND,"1150","El cliente no existe o está bloqueado");
                }
                // Si la verificac
-                log.error("[login] Tarjeta no pertenece al usuario");
+                log.error("[login] Tarjeta verifica tarjeta");
                cardRestClient.checkIfCardBelongsToUser(userResponseDto.get().getId(),request.getPan());
             }else {
                 log.error("[login] Usuario no existe");

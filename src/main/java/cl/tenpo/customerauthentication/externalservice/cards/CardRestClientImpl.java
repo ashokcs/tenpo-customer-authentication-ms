@@ -29,9 +29,14 @@ public class CardRestClientImpl implements CardRestClient{
     private RestTemplate restTemplate;
 
     @Override
-    public void checkIfCardBelongsToUser(UUID userId, String truncatedPan) {
+    public void checkIfCardBelongsToUser(UUID userId, String truncatedPan) throws TenpoException{
         try{
-            log.info("[checkIfCardBelongsToUser] IN");
+            log.info("[checkIfCardBelongsToUser] IN {}{}{}",userId,truncatedPan,CheckCardBelongsRequest
+                    .builder()
+                    .pan(truncatedPan)
+                    .userUuid(userId)
+                    .build());
+
             restTemplate.postForEntity(config.getCards().getCheckIfCardBelongsToUser(),
                     new HttpEntity<>(CheckCardBelongsRequest
                             .builder()
