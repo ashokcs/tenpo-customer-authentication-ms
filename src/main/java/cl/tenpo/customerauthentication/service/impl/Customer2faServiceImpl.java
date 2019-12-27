@@ -53,7 +53,7 @@ public class Customer2faServiceImpl implements Customer2faService {
             Optional<UserResponse> userResponseDto = userRestClient.getUserByProvider(jwtDTO.getOid());
             log.info("[login] Find User by provider");
             // Verificacion de usuario
-            if(userResponseDto.isPresent()){
+            if(userResponseDto.isPresent()) {
                if(!userResponseDto.get().getState().equals(UserStateType.ACTIVE)) {
                    log.error("[login] Cliente no activo");
                    throw new TenpoException(HttpStatus.NOT_FOUND,"1150","El cliente no existe o está bloqueado");
