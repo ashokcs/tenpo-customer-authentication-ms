@@ -9,10 +9,8 @@ import cl.tenpo.customerauthentication.externalservice.cards.CardRestClient;
 import cl.tenpo.customerauthentication.constants.CustomerAuthenticationConstants;
 import cl.tenpo.customerauthentication.constants.ErrorCode;
 import cl.tenpo.customerauthentication.database.repository.CustomerTransactionContextRespository;
-import cl.tenpo.customerauthentication.exception.TenpoException;
-import cl.tenpo.customerauthentication.externalservice.azure.dto.TokenResponse;
 import cl.tenpo.customerauthentication.externalservice.notification.NotificationRestClient;
-import cl.tenpo.customerauthentication.externalservice.notification.dto.EmailV2Dto;
+import cl.tenpo.customerauthentication.externalservice.notification.dto.EmailDto;
 import cl.tenpo.customerauthentication.externalservice.notification.dto.NotificationEventType;
 import cl.tenpo.customerauthentication.externalservice.notification.dto.TwoFactorPushRequest;
 import cl.tenpo.customerauthentication.externalservice.user.UserRestClient;
@@ -148,7 +146,7 @@ public class Customer2faServiceImpl implements Customer2faService {
 
         switch (newCustomerChallenge.getChallengeType()) {
             case OTP_MAIL: {
-                EmailV2Dto emailV2Dto = EmailV2Dto.builder()
+                EmailDto emailDto = EmailDto.builder()
                         .from(CustomerAuthenticationConstants.TWO_FACTOR_MAIL_FROM)
                         .to(userResponse.getEmail())
                         .referenceId(newCustomerChallenge.getChallengeId().toString())
@@ -163,7 +161,7 @@ public class Customer2faServiceImpl implements Customer2faService {
                                 LocalDateTime.now(ZoneId.of("America/Santiago")).format(formatter)
                         ))
                         .build();
-                notificationRestClient.sendEmailv2(emailV2Dto);
+                notificationRestClient.sendEmail(emailDto);
                 break;
             }
             case APP: {

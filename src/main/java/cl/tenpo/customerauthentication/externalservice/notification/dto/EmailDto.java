@@ -12,7 +12,7 @@ import java.util.Map;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class EmailV2Dto{
+public class EmailDto {
 
     private String from;
     private String to;

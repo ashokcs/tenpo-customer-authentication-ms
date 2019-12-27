@@ -1,6 +1,6 @@
 package cl.tenpo.customerauthentication.externalservice.notification;
 
-import cl.tenpo.customerauthentication.externalservice.notification.dto.EmailV2Dto;
+import cl.tenpo.customerauthentication.externalservice.notification.dto.EmailDto;
 import cl.tenpo.customerauthentication.externalservice.notification.dto.TwoFactorPushRequest;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +20,7 @@ public class NotificationRestClientMock implements NotificationRestClient {
     }
 
     @Override
-    public void sendEmailv2(EmailV2Dto emailRequest) {
+    public void sendEmail(EmailDto emailRequest) {
         log.info("[sendEmail] Mock Send Email OK");
     }
 

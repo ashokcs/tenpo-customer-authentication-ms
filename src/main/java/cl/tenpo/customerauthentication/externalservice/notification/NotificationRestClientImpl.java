@@ -2,7 +2,7 @@ package cl.tenpo.customerauthentication.externalservice.notification;
 
 import cl.tenpo.customerauthentication.constants.ErrorCode;
 import cl.tenpo.customerauthentication.exception.TenpoException;
-import cl.tenpo.customerauthentication.externalservice.notification.dto.EmailV2Dto;
+import cl.tenpo.customerauthentication.externalservice.notification.dto.EmailDto;
 import cl.tenpo.customerauthentication.externalservice.notification.dto.TwoFactorPushRequest;
 import cl.tenpo.customerauthentication.properties.CloudProps;
 import lombok.AllArgsConstructor;
@@ -50,7 +50,7 @@ public class NotificationRestClientImpl implements NotificationRestClient {
     }
 
     @Override
-    public void sendEmailv2(EmailV2Dto emailRequest){
+    public void sendEmail(EmailDto emailRequest){
         try {
             getURINotificationAndTraceRequestBody(emailRequest, config.getNotifications().getSendGenericEmailResourcePath());
             String urlEndpoint = config.getNotifications().getSendGenericEmailResourcePath();

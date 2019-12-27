@@ -6,7 +6,7 @@ import cl.tenpo.customerauthentication.constants.CustomerAuthenticationConstants
 import cl.tenpo.customerauthentication.constants.ErrorCode;
 import cl.tenpo.customerauthentication.exception.TenpoException;
 import cl.tenpo.customerauthentication.externalservice.notification.NotificationRestClient;
-import cl.tenpo.customerauthentication.externalservice.notification.dto.EmailV2Dto;
+import cl.tenpo.customerauthentication.externalservice.notification.dto.EmailDto;
 import cl.tenpo.customerauthentication.externalservice.notification.dto.MessageType;
 import cl.tenpo.customerauthentication.externalservice.notification.dto.NotificationEventType;
 import cl.tenpo.customerauthentication.externalservice.notification.dto.TwoFactorPushRequest;
@@ -70,13 +70,13 @@ public class Customer2faServiceCreateChallengeTests extends CustomerAuthenticati
         when(customerChallengeService.createRequestedChallenge(userId, createChallengeRequest))
                 .thenReturn(newCustomerChallenge);
 
-        doNothing().when(notificationRestClient).sendEmailv2(any());
+        doNothing().when(notificationRestClient).sendEmail(any());
 
         customer2faService.createChallenge(userId, createChallengeRequest);
 
         // Debe llamar al servicio de email
-        ArgumentCaptor<EmailV2Dto> mailCaptor = ArgumentCaptor.forClass(EmailV2Dto.class);
-        verify(notificationRestClient, times(1)).sendEmailv2(mailCaptor.capture());
+        ArgumentCaptor<EmailDto> mailCaptor = ArgumentCaptor.forClass(EmailDto.class);
+        verify(notificationRestClient, times(1)).sendEmail(mailCaptor.capture());
         Assert.assertEquals("From twofactor mail", CustomerAuthenticationConstants.TWO_FACTOR_MAIL_FROM, mailCaptor.getValue().getFrom());
         Assert.assertEquals("To user mail", userResponse.getEmail(), mailCaptor.getValue().getTo());
         Assert.assertEquals("ReferenceId del challenge", newCustomerChallenge.getChallengeId().toString(), mailCaptor.getValue().getReferenceId());
@@ -110,7 +110,7 @@ public class Customer2faServiceCreateChallengeTests extends CustomerAuthenticati
         when(customerChallengeService.createRequestedChallenge(userId, createChallengeRequest))
                 .thenReturn(newCustomerChallenge);
 
-        doNothing().when(notificationRestClient).sendEmailv2(any());
+        doNothing().when(notificationRestClient).sendEmail(any());
 
         customer2faService.createChallenge(userId, createChallengeRequest);
 
@@ -144,7 +144,7 @@ public class Customer2faServiceCreateChallengeTests extends CustomerAuthenticati
         when(customerChallengeService.createRequestedChallenge(userId, createChallengeRequest))
                 .thenReturn(newCustomerChallenge);
 
-        doNothing().when(notificationRestClient).sendEmailv2(any());
+        doNothing().when(notificationRestClient).sendEmail(any());
 
         customer2faService.createChallenge(userId, createChallengeRequest);
 
