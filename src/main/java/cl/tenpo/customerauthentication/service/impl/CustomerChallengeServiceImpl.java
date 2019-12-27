@@ -1,6 +1,7 @@
 package cl.tenpo.customerauthentication.service.impl;
 
 import cl.tenpo.customerauthentication.api.dto.CreateChallengeRequest;
+import cl.tenpo.customerauthentication.constants.ErrorCode;
 import cl.tenpo.customerauthentication.database.entity.CustomerChallengeEntity;
 import cl.tenpo.customerauthentication.database.entity.CustomerTransactionContextEntity;
 import cl.tenpo.customerauthentication.database.repository.CustomerChallengeRepository;
@@ -8,17 +9,24 @@ import cl.tenpo.customerauthentication.database.repository.CustomerTransactionCo
 import cl.tenpo.customerauthentication.dto.CustomerChallengeDTO;
 import cl.tenpo.customerauthentication.dto.CustomerTransactionContextDTO;
 import cl.tenpo.customerauthentication.exception.TenpoException;
+import cl.tenpo.customerauthentication.externalservice.verifier.VerifierRestClient;
+import cl.tenpo.customerauthentication.externalservice.verifier.dto.GenerateTwoFactorResponse;
 import cl.tenpo.customerauthentication.model.ChallengeStatus;
+import cl.tenpo.customerauthentication.model.NewCustomerChallenge;
 import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.provider.HibernateUtils;
 import org.springframework.expression.ParseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,29 +45,19 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
     @Autowired
     private CustomerChallengeRepository customerChallengeRepository;
 
-
+    @Autowired
+    private VerifierRestClient verifierRestClient;
 
     @Override
-    public Optional<CustomerTransactionContextDTO> createChallenge(CreateChallengeRequest createChallengeRequest) {
-
+    public NewCustomerChallenge createRequestedChallenge(UUID userId, CreateChallengeRequest createChallengeRequest) {
+        GenerateTwoFactorResponse twoFactorResponse;
         Optional<CustomerTransactionContextDTO> customerTrx = findByExternalId(createChallengeRequest.getExternalId());
 
-        if (customerTrx.isPresent()) {
-            //Agregar un challenge a una trx existente
-            createCustomerChallenge(
-                    CustomerChallengeDTO.builder()
-                            .id(UUID.randomUUID())
-                            .customerTransaction(customerTrx.get())
-                            .created(LocalDateTime.now())
-                            .updated(LocalDateTime.now())
-                            .challengeType(createChallengeRequest.getChallengeType())
-                            .status(ChallengeStatus.OPEN)
-                            .build()
-            );
-        } else {
-            // Si no existe se crea
+        // Si no existe la transaccion se crea
+        if (!customerTrx.isPresent()) {
             customerTrx =  createTransactionContext(CustomerTransactionContextDTO.builder()
-            .id(UUID.randomUUID())
+                    .id(UUID.randomUUID())
+                    .userId(userId)
                     .externalId(createChallengeRequest.getExternalId())
                     .txType(createChallengeRequest.getTransactionContext().getTxType())
                     .txAmount(createChallengeRequest.getTransactionContext().getTxAmount().getValue())
@@ -71,19 +69,72 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
                     .status(CustomerTransactionStatus.PENDING)
                     .created(LocalDateTime.now())
                     .updated(LocalDateTime.now())
-            .build());
-
-            customerTrx.ifPresent(customerTransactionContextDTO -> createCustomerChallenge(
-                    CustomerChallengeDTO.builder()
-                            .id(UUID.randomUUID())
-                            .customerTransaction(customerTransactionContextDTO)
-                            .created(LocalDateTime.now())
-                            .updated(LocalDateTime.now())
-                            .challengeType(createChallengeRequest.getChallengeType())
-                            .status(ChallengeStatus.OPEN)
-                            .build()));
+                    .build());
         }
-        return customerTrx;
+
+
+        List<CustomerChallengeEntity> challengeList = customerChallengeRepository.findByTransactionContextId(customerTrx.get().getId());
+
+        // Revisar que no se haya expirado los desafios para esta transaccion
+        Optional<CustomerChallengeEntity> closedChallenge = challengeList.stream()
+                .filter(challenge -> { return ChallengeStatus.EXPIRED.equals(challenge.getStatus()); })
+                .findAny();
+        if (closedChallenge.isPresent()) {
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.CHALLENGE_EXPIRED);
+        }
+
+        // Revisar que no se haya cancelado/usado los desafios para esta transaccion
+        Optional<CustomerChallengeEntity> canceledChallenge = challengeList.stream()
+                .filter(challenge -> { return ChallengeStatus.USED.equals(challenge.getStatus()); })
+                .findAny();
+        if (canceledChallenge.isPresent()) {
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.CHALLENGE_CANCELED);
+        }
+
+        // Revisar si existe alguno creado hace menos de 30 segundos, del mismo tipo y estado OPEN
+        Optional<CustomerChallengeEntity> ongoingChallenge = challengeList.stream()
+                .filter(challenge -> { return ChallengeStatus.OPEN.equals(challenge.getStatus()) &&
+                                              createChallengeRequest.getChallengeType().equals(challenge.getChallengeType()) &&
+                                              challenge.getCreated().isAfter(LocalDateTime.now(ZoneId.of("UTC")).minusSeconds(30)); })
+                .sorted((c1, c2) -> c2.getCreated().compareTo(c1.getCreated()))
+                .findFirst();
+
+        // Existe uno reciente?
+        if (ongoingChallenge.isPresent()) {
+
+            // Buscar su codigo
+            twoFactorResponse = verifierRestClient.generateTwoFactorCode(userId, ongoingChallenge.get().getId(), null);
+
+            // No se ha vencido? Retornarlo.
+            if (twoFactorResponse.getId().equals(ongoingChallenge.get().getVerifierId())) {
+                return NewCustomerChallenge.builder()
+                        .challengeId(ongoingChallenge.get().getId())
+                        .code(twoFactorResponse.getGeneratedCode())
+                        .challengeType(createChallengeRequest.getChallengeType())
+                        .build();
+            }
+        } else {
+            // Obtener un nuevo codigo y su id
+            twoFactorResponse = verifierRestClient.generateTwoFactorCode(userId, null, null);
+        }
+
+        // Se debe crear el nuevo challenge
+        Optional<CustomerChallengeDTO> customerChallengeDTO = createCustomerChallenge(CustomerChallengeDTO.builder()
+            .id(UUID.randomUUID())
+            .customerTransaction(customerTrx.get())
+            .verifierId(twoFactorResponse.getId())
+            .created(LocalDateTime.now())
+            .updated(LocalDateTime.now())
+            .challengeType(createChallengeRequest.getChallengeType())
+            .status(ChallengeStatus.OPEN)
+            .build()
+        );
+
+        return NewCustomerChallenge.builder()
+                .challengeId(customerChallengeDTO.get().getId())
+                .code(twoFactorResponse.getGeneratedCode())
+                .challengeType(createChallengeRequest.getChallengeType())
+                .build();
     }
 
     @Override
