@@ -71,6 +71,6 @@ krealo:
             checkIfCardBelongsToUser: ${krealo.cloud.cards.baseUrl}/${krealo.cloud.version}/cards-management/cards/check-card
             implement: mock
         verifier:
-            baseUrl: http://verifier-ms:8080
+            baseUrl: http://40.123.30.130:8080
             getGenerateTwoFactorResourcePath: ${krealo.cloud.verifier.baseUrl}/${krealo.cloud.version}/account-management/accounts/{userId}/two-factor/generate-code
             implement: mock

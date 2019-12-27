@@ -35,8 +35,6 @@ public class VerifierRestClientImpl implements VerifierRestClient {
 
             StringBuilder resourcePathBuilder = new StringBuilder();
             VerifierProps verifierProps = config.getVerifier();
-            UsersProps userProps = config.getUsers();
-            System.out.println(userProps);
             resourcePathBuilder.append(verifierProps.getGetGenerateTwoFactorResourcePath());
 
             if (codeId != null) {
@@ -54,7 +52,6 @@ public class VerifierRestClientImpl implements VerifierRestClient {
             map.put("userId", userId.toString());
             log.debug("[generateTwoFactorCode] URL [{}]", resourcePath);
             ResponseEntity<GenerateTwoFactorResponse> response = restTemplate.postForEntity(resourcePath, null, GenerateTwoFactorResponse.class, map);
-
             log.debug("[generateTwoFactorCode] Response: [{}]", response);
             return response.getBody();
         } catch (HttpClientErrorException | HttpServerErrorException e) {
