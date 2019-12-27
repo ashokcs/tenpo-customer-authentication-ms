@@ -2,6 +2,8 @@ package cl.tenpo.customerauthentication.externalservice.verifier;
 
 import cl.tenpo.customerauthentication.externalservice.verifier.dto.GenerateTwoFactorResponse;
 import cl.tenpo.customerauthentication.properties.CloudProps;
+import cl.tenpo.customerauthentication.properties.UsersProps;
+import cl.tenpo.customerauthentication.properties.VerifierProps;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -34,7 +36,10 @@ public class VerifierRestClientImpl implements VerifierRestClient {
             log.info("[generateTwoFactorCode] generate code for: [{}]", userId.toString());
 
             StringBuilder resourcePathBuilder = new StringBuilder();
-            resourcePathBuilder.append(config.getUsers().getGetUserByIdResourcePath());
+            VerifierProps verifierProps = config.getVerifier();
+            UsersProps userProps = config.getUsers();
+            System.out.println(userProps);
+            resourcePathBuilder.append(verifierProps.getGetGenerateTwoFactorResourcePath());
 
             if (codeId != null) {
                 resourcePathBuilder.append(String.format("?id=%s", codeId));
