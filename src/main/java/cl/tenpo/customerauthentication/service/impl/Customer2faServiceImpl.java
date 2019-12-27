@@ -62,23 +62,31 @@ public class Customer2faServiceImpl implements Customer2faService {
         TokenResponse tokenResponse;
         try {
             //Try Login in AZ AD
+            log.info("[login] Try to login into azure ad");
             tokenResponse = azureClient.loginUser(request.getEmail(),request.getPassword());
+            log.info("[login] Login succes");
             JwtDTO jwtDTO = JwtUtil.parseJWT(tokenResponse.getAccessToken());
+            log.info("[login] Token Parsed");
             Optional<UserResponse> userResponseDto = userRestClient.getUserByProvider(jwtDTO.getOid());
+            log.info("[login] Find User by provider");
             // Verificacion de usuario
             if(userResponseDto.isPresent()){
-               if(!userResponseDto.get().getState().equals(UserStateType.ACTIVE)){
+               if(!userResponseDto.get().getState().equals(UserStateType.ACTIVE)) {
+                   log.error("[login] Cliente no activo");
                    throw new TenpoException(HttpStatus.NOT_FOUND,"1150","El cliente no existe o está bloqueado");
                }
                // Si la verificac
+                log.error("[login] Tarjeta no pertenece al usuario");
                cardRestClient.checkIfCardBelongsToUser(userResponseDto.get().getId(),request.getPan());
             }else {
+                log.error("[login] Usuario no existe");
                 throw new TenpoException(HttpStatus.NOT_FOUND,"1150","El cliente no existe o está bloqueado");
             }
         } catch (Exception e){
+            log.error("[login] Error login on Azure AD");
             throw new TenpoException(HttpStatus.NOT_FOUND,"1150","El cliente no existe o está bloqueado");
         }
-
+        log.info("[login] User+Pan OK");
         return tokenResponse;
     }
 
