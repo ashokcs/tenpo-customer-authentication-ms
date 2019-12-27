@@ -64,8 +64,9 @@ public class UserRestClientImpl implements UserRestClient {
 
             Map<String, String> map = new HashMap<>();
             map.put("provider", PROVIDER);
+            log.info("[getUserByProvider] URL: {}",config.getUsers().getGetUserByProvider());
             URI uri = UriComponentsBuilder.fromHttpUrl(config.getUsers().getGetUserByProvider()).queryParam(USER_PROVIDER_ID, providerId).build().encode().toUri();
-            log.info("[getUserByProvider] URL: {}",uri.toString());
+            log.info("[getUserByProvider] URL Build: {}",uri.toString());
             String response = restTemplate.getForObject(uri.toString(), String.class, map);
             log.debug("[getUserByProvider] Response: [{}]", response);
 
