@@ -22,6 +22,8 @@ public class CustomerChallengeEntity {
     @JoinColumn(name = "transaction_context_id")
     private CustomerTransactionContextEntity customerTransaction;
 
+    private UUID verifierId;
+
     @Enumerated(EnumType.STRING)
     private ChallengeType challengeType;
 

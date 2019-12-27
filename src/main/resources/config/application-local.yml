@@ -59,3 +59,7 @@ krealo:
             implement: mock
         notifications:
             implement: real
+        verifier:
+            baseUrl: http://verifier-ms:8080
+            getGenerateTwoFactorResourcePath: ${krealo.cloud.verifier.baseUrl}/${krealo.cloud.version}/account-management/accounts/{userId}/two-factor/generate-code?id={codeId}&expiration={expirationTime}
+            implement: mock
