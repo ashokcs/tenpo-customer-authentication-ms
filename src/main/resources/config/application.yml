@@ -38,7 +38,11 @@ krealo:
   cloud:
     users:
       implement: real
+    notifications:
+      implement: real
     cards:
+      implement: real
+    verifier:
       implement: real
   external:
     api:

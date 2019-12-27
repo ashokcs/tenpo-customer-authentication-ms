@@ -59,6 +59,11 @@ krealo:
             getUserByProvider: ${krealo.cloud.users.baseUrl}/${krealo.cloud.version}/user-management/identity-provider/{provider}/me
             implement: mock
         notifications:
+            baseUrl: http://ab0ea66e8ef6711e8af090ab676248e6-1957711363.us-east-1.elb.amazonaws.com:8080
+            sendCreateNotificationSettingResourcePath: ${krealo.cloud.notifications.baseUrl}/${krealo.cloud.version}/customer-management/notification_setting/{userId}/configuration
+            sendEmailNotificationResourcePath: ${krealo.cloud.notifications.baseUrl}/${krealo.cloud.version}/customer-management/notification/email
+            sendNotificationResourcePath: ${krealo.cloud.notifications.baseUrl}/${krealo.cloud.version}/customer-management/notification/internal
+            sendGenericEmailResourcePath: ${krealo.cloud.users.baseUrl}/${krealo.cloud.version}/customer-management/notification/email/generic
             implement: mock
         cards:
             baseUrl: http://cards-ms:8080
@@ -67,4 +72,4 @@ krealo:
         verifier:
             baseUrl: http://verifier-ms:8080
             getGenerateTwoFactorResourcePath: ${krealo.cloud.verifier.baseUrl}/${krealo.cloud.version}/account-management/accounts/{userId}/two-factor/generate-code
-            implement: mock
+            implement: real
