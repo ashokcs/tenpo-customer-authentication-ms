@@ -31,6 +31,7 @@ public class CardRestClientImpl implements CardRestClient{
     @Override
     public void checkIfCardBelongsToUser(UUID userId, String truncatedPan) {
         try{
+            log.info("[checkIfCardBelongsToUser] IN");
             restTemplate.postForEntity(config.getCards().getCheckIfCardBelongsToUser(),
                     new HttpEntity<>(CheckCardBelongsRequest
                             .builder()
