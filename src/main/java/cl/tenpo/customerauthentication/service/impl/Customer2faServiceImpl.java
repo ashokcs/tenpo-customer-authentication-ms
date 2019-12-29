@@ -154,45 +154,49 @@ public class Customer2faServiceImpl implements Customer2faService {
 
     private void sendChallenge(NewCustomerChallenge newCustomerChallenge, UserResponse userResponse) {
 
-        switch (newCustomerChallenge.getChallengeType()) {
-            case OTP_MAIL: {
-                EmailDto emailDto = EmailDto.builder()
-                        .from(CustomerAuthenticationConstants.TWO_FACTOR_MAIL_FROM)
-                        .to(userResponse.getEmail())
-                        .referenceId(newCustomerChallenge.getChallengeId().toString())
-                        .subject(CustomerAuthenticationConstants.TWO_FACTOR_MAIL_SUBJECT)
-                        .template(CustomerAuthenticationConstants.TWO_FACTOR_MAIL_TEMPLATE)
-                        .params(buildTwoFactorMailParam(
-                                userResponse.getFirstName(),
-                                newCustomerChallenge.getCode()))
-                        .build();
-                notificationRestClient.sendEmail(emailDto);
-                break;
+        try {
+            switch (newCustomerChallenge.getChallengeType()) {
+                case OTP_MAIL: {
+                    EmailDto emailDto = EmailDto.builder()
+                            .from(CustomerAuthenticationConstants.TWO_FACTOR_MAIL_FROM)
+                            .to(userResponse.getEmail())
+                            .referenceId(newCustomerChallenge.getChallengeId().toString())
+                            .subject(CustomerAuthenticationConstants.TWO_FACTOR_MAIL_SUBJECT)
+                            .template(CustomerAuthenticationConstants.TWO_FACTOR_MAIL_TEMPLATE)
+                            .params(buildTwoFactorMailParam(
+                                    userResponse.getFirstName(),
+                                    newCustomerChallenge.getCode()))
+                            .build();
+                    notificationRestClient.sendEmail(emailDto);
+                    break;
+                }
+                case APP: {
+                    // Todo: no se implementa por ahora
+                    break;
+                }
+                case OTP_SMS: {
+                    TwoFactorPushRequest twoFactorPushRequest = TwoFactorPushRequest.builder()
+                            .userId(userResponse.getId())
+                            .pusherEvent(NotificationEventType.VERIFICATION_CODE)
+                            .messageType(SMS)
+                            .verificationCode(newCustomerChallenge.getCode())
+                            .build();
+                    notificationRestClient.sendMessagePush(twoFactorPushRequest);
+                    break;
+                }
+                case OTP_PUSH: {
+                    TwoFactorPushRequest twoFactorPushRequest = TwoFactorPushRequest.builder()
+                            .userId(userResponse.getId())
+                            .pusherEvent(NotificationEventType.VERIFICATION_CODE)
+                            .messageType(PUSH_NOTIFICATION)
+                            .verificationCode(newCustomerChallenge.getCode())
+                            .build();
+                    notificationRestClient.sendMessagePush(twoFactorPushRequest);
+                    break;
+                }
             }
-            case APP: {
-                // Todo: no se implementa por ahora
-                break;
-            }
-            case OTP_SMS: {
-                TwoFactorPushRequest twoFactorPushRequest = TwoFactorPushRequest.builder()
-                        .userId(userResponse.getId())
-                        .pusherEvent(NotificationEventType.VERIFICATION_CODE)
-                        .messageType(SMS)
-                        .verificationCode(newCustomerChallenge.getCode())
-                        .build();
-                notificationRestClient.sendMessagePush(twoFactorPushRequest);
-                break;
-            }
-            case OTP_PUSH: {
-                TwoFactorPushRequest twoFactorPushRequest = TwoFactorPushRequest.builder()
-                        .userId(userResponse.getId())
-                        .pusherEvent(NotificationEventType.VERIFICATION_CODE)
-                        .messageType(PUSH_NOTIFICATION)
-                        .verificationCode(newCustomerChallenge.getCode())
-                        .build();
-                notificationRestClient.sendMessagePush(twoFactorPushRequest);
-                break;
-            }
+        } catch (Exception e) {
+            throw new TenpoException(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.NOTIFICATION_ERROR);
         }
     }
 

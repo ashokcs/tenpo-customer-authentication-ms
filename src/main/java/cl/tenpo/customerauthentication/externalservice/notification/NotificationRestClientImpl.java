@@ -45,7 +45,7 @@ public class NotificationRestClientImpl implements NotificationRestClient {
 
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             log.error("HttpClientErrorException : {}", e.getMessage());
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.PUSH_NOTIFICATION_ERROR);
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.NOTIFICATION_ERROR);
         }
     }
 
@@ -57,7 +57,7 @@ public class NotificationRestClientImpl implements NotificationRestClient {
             restTemplate.postForEntity(urlEndpoint, new HttpEntity<>(emailRequest, initHeader()), Void.class);
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             log.error("HttpClientErrorException : {}", e.getMessage());
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.ERROR_EMAIL_NOTIFICATION);
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.NOTIFICATION_ERROR);
         }
     }
 
@@ -67,7 +67,7 @@ public class NotificationRestClientImpl implements NotificationRestClient {
             log.debug("request uri notification {} with data {}", urlEndpoint, object);
         } catch (Exception e) {
             log.error(String.format("Error parsing request %s from  uri %s ", object, urlEndpoint), e);
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.ERROR_EMAIL_NOTIFICATION);
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.NOTIFICATION_ERROR);
         }
         return urlEndpoint;
     }
