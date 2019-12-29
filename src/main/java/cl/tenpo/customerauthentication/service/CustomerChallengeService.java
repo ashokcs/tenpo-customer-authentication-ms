@@ -3,6 +3,7 @@ package cl.tenpo.customerauthentication.service;
 import cl.tenpo.customerauthentication.api.dto.CreateChallengeRequest;
 import cl.tenpo.customerauthentication.dto.CustomerChallengeDTO;
 import cl.tenpo.customerauthentication.dto.CustomerTransactionContextDTO;
+import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,4 +16,5 @@ public interface CustomerChallengeService {
     Optional<CustomerChallengeDTO> createCustomerChallenge(CustomerChallengeDTO customerChallengeDTO);
     Optional<CustomerTransactionContextDTO> findByExternalId(UUID externalId);
     List<CustomerChallengeDTO> findChallengeByTrxId(UUID customerTrxId);
+    Optional<CustomerTransactionContextDTO> updateTransactionContextStatus(UUID externalId, CustomerTransactionStatus status);
 }

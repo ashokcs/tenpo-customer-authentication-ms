@@ -12,6 +12,7 @@ import cl.tenpo.customerauthentication.externalservice.user.dto.UserResponse;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserStateType;
 import cl.tenpo.customerauthentication.model.ChallengeResult;
 import cl.tenpo.customerauthentication.model.ChallengeType;
+import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
 import cl.tenpo.customerauthentication.service.Customer2faService;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
 import cl.tenpo.customerauthentication.util.JwtUtil;
@@ -110,11 +111,39 @@ public class Customer2faServiceImpl implements Customer2faService {
 
     @Override
     public AbortChallengeResponse abortResponse(UUID userId, AbortChallengeRequest request) {
-        return null;
+
+        Optional<CustomerTransactionContextDTO> customerTransactionContextDTO = customerChallengeService.findByExternalId(request.getExternalId());
+        if(!customerTransactionContextDTO.isPresent()){
+            log.error("[validateChallenge] No se encontró el external_id. Llame primero a POST");
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY,"1100", "No se encontró el external_id. Llame primero a POST");
+        }
+        Optional<UserResponse> userResponseDto;
+        try {
+            userResponseDto = userRestClient.getUser(userId);
+        }catch (Exception e){
+            log.error("[validateChallenge] Error al verificar usuario");
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY,"500", "Error interno del servicio al verificar usuario");
+        }
+
+        if(!userResponseDto.isPresent()|| !userResponseDto.get().getState().equals(UserStateType.ACTIVE)){
+            log.error("[validateChallenge] El cliente no existe o esta bloqueado");
+            throw new TenpoException(HttpStatus.NOT_FOUND,"1150", "El cliente no existe o está bloqueado");
+        }
+       customerTransactionContextDTO = customerChallengeService.updateTransactionContextStatus(request.getExternalId(), CustomerTransactionStatus.CANCELADO);
+       if(!customerTransactionContextDTO.isPresent()){
+            log.error("[validateChallenge] No se encontró el external_id. Llame primero a POST");
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY,"1100", "No se encontró el external_id. Llame primero a POST");
+       }
+
+       return AbortChallengeResponse.builder()
+               .externalId(customerTransactionContextDTO.get().getExternalId())
+               .result(customerTransactionContextDTO.get().getStatus())
+               .build();
     }
 
     @Override
     public List<String> listChallenge(UUID userId) {
+
         Optional<UserResponse> userResponseDto;
         try {
             userResponseDto = userRestClient.getUser(userId);

@@ -1,6 +1,9 @@
 package cl.tenpo.customerauthentication.api.dto;
 
+import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
 import lombok.*;
+
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -8,6 +11,6 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class AbortChallengeResponse {
-    private String externalId;
-    private String result;
+    private UUID externalId;
+    private CustomerTransactionStatus result;
 }

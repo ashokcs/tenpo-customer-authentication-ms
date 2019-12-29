@@ -126,6 +126,23 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
         return customerChallengeEntityList.stream().map(e -> convertToDto(e)).collect(Collectors.toList());
     }
 
+    @Override
+    public Optional<CustomerTransactionContextDTO> updateTransactionContextStatus(UUID externalId, CustomerTransactionStatus status) {
+        log.info("[updateTransactionContextStatus] IN [{}] [{}]", externalId, status);
+        Optional<CustomerTransactionContextEntity> customerTransactionContextEntity = customerTransactionContextRespository.findByExternalId(externalId);
+        if(customerTransactionContextEntity.isPresent()) {
+            customerTransactionContextEntity.get().setStatus(status);
+            CustomerTransactionContextEntity customerTx = customerTransactionContextRespository.save(customerTransactionContextEntity.get());
+            log.info("[updateTransactionContextStatus] OUT OK");
+            return Optional.of(convertToDto(customerTx));
+        }
+        else {
+            log.info("[updateTransactionContextStatus] OUT NOT FOUND");
+            return Optional.empty();
+        }
+
+    }
+
     private CustomerTransactionContextEntity convertToEntity(CustomerTransactionContextDTO value) throws ParseException {
         CustomerTransactionContextEntity post = modelMapper.map(value, CustomerTransactionContextEntity.class);
         return post;
