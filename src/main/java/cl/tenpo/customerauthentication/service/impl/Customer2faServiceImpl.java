@@ -154,8 +154,6 @@ public class Customer2faServiceImpl implements Customer2faService {
 
     private void sendChallenge(NewCustomerChallenge newCustomerChallenge, UserResponse userResponse) {
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
-
         switch (newCustomerChallenge.getChallengeType()) {
             case OTP_MAIL: {
                 EmailDto emailDto = EmailDto.builder()
@@ -163,15 +161,10 @@ public class Customer2faServiceImpl implements Customer2faService {
                         .to(userResponse.getEmail())
                         .referenceId(newCustomerChallenge.getChallengeId().toString())
                         .subject(CustomerAuthenticationConstants.TWO_FACTOR_MAIL_SUBJECT)
-                        .bcc(new String[]{userResponse.getEmail()})
                         .template(CustomerAuthenticationConstants.TWO_FACTOR_MAIL_TEMPLATE)
                         .params(buildTwoFactorMailParam(
                                 userResponse.getFirstName(),
-                                String.format("%s %s ", userResponse.getFirstName(), userResponse.getLastName()),
-                                newCustomerChallenge.getCode(),
-                                newCustomerChallenge.getChallengeId().toString(),
-                                LocalDateTime.now(ZoneId.of("America/Santiago")).format(formatter)
-                        ))
+                                newCustomerChallenge.getCode()))
                         .build();
                 notificationRestClient.sendEmail(emailDto);
                 break;
@@ -183,7 +176,6 @@ public class Customer2faServiceImpl implements Customer2faService {
             case OTP_SMS: {
                 TwoFactorPushRequest twoFactorPushRequest = TwoFactorPushRequest.builder()
                         .userId(userResponse.getId())
-                        .linkId(newCustomerChallenge.getChallengeId())
                         .pusherEvent(NotificationEventType.VERIFICATION_CODE)
                         .messageType(SMS)
                         .verificationCode(newCustomerChallenge.getCode())
@@ -194,7 +186,6 @@ public class Customer2faServiceImpl implements Customer2faService {
             case OTP_PUSH: {
                 TwoFactorPushRequest twoFactorPushRequest = TwoFactorPushRequest.builder()
                         .userId(userResponse.getId())
-                        .linkId(newCustomerChallenge.getChallengeId())
                         .pusherEvent(NotificationEventType.VERIFICATION_CODE)
                         .messageType(PUSH_NOTIFICATION)
                         .verificationCode(newCustomerChallenge.getCode())
@@ -205,14 +196,10 @@ public class Customer2faServiceImpl implements Customer2faService {
         }
     }
 
-    private Map<String, String> buildTwoFactorMailParam(String name, String fullName, String twoFactorCode,
-                                                        String transactionId, String date) {
+    private Map<String, String> buildTwoFactorMailParam(String name, String twoFactorCode) {
         Map<String, String> mailParam = new HashMap<>();
-        mailParam.put("{{name}}", name);
-        mailParam.put("{{fullName}}", fullName);
-        mailParam.put("{{code}}", twoFactorCode);
-        mailParam.put("{{transactionId}}", transactionId);
-        mailParam.put("{{date}}", date);
+        mailParam.put("user_name", name);
+        mailParam.put("-code-", twoFactorCode);
         return mailParam;
     }
 }

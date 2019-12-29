@@ -59,7 +59,8 @@ public class Customer2faServiceCreateChallengeTests extends CustomerAuthenticati
         UserResponse userResponse = new UserResponse();
         userResponse.setId(userId);
         userResponse.setState(UserStateType.ACTIVE);
-        userResponse.setEmail("user@mail.com");
+        userResponse.setEmail("test@tenpo.cl");
+        userResponse.setFirstName("Userio");
         when(userRestClient.getUser(userId))
                 .thenReturn(Optional.of(userResponse));
 
@@ -84,10 +85,8 @@ public class Customer2faServiceCreateChallengeTests extends CustomerAuthenticati
         Assert.assertEquals("template two factor", CustomerAuthenticationConstants.TWO_FACTOR_MAIL_TEMPLATE, mailCaptor.getValue().getTemplate());
 
         Map<String, String> mailMap = mailCaptor.getValue().getParams();
-        Assert.assertEquals("Debe enviarse con el nombre", userResponse.getFirstName(), mailMap.get("{{name}}"));
-        Assert.assertEquals("Debe enviarse con el fullName", String.format("%s %s ", userResponse.getFirstName(), userResponse.getLastName()), mailMap.get("{{fullName}}"));
-        Assert.assertEquals("Debe enviarse con el transactionId como challengeId", newCustomerChallenge.getChallengeId().toString(), mailMap.get("{{transactionId}}"));
-        Assert.assertEquals("Debe enviarse con el codigo", newCustomerChallenge.getCode(), mailMap.get("{{code}}"));
+        Assert.assertEquals("Debe enviarse con el nombre", userResponse.getFirstName(), mailMap.get("user_name"));
+        Assert.assertEquals("Debe enviarse con el codigo", newCustomerChallenge.getCode(), mailMap.get("-code-"));
     }
 
     @Test
@@ -110,7 +109,7 @@ public class Customer2faServiceCreateChallengeTests extends CustomerAuthenticati
         when(customerChallengeService.createRequestedChallenge(userId, createChallengeRequest))
                 .thenReturn(newCustomerChallenge);
 
-        doNothing().when(notificationRestClient).sendEmail(any());
+        doNothing().when(notificationRestClient).sendMessagePush(any());
 
         customer2faService.createChallenge(userId, createChallengeRequest);
 
@@ -118,7 +117,6 @@ public class Customer2faServiceCreateChallengeTests extends CustomerAuthenticati
         ArgumentCaptor<TwoFactorPushRequest> smsCaptor = ArgumentCaptor.forClass(TwoFactorPushRequest.class);
         verify(notificationRestClient, times(1)).sendMessagePush(smsCaptor.capture());
         Assert.assertEquals("Debe tener el userId", userId, smsCaptor.getValue().getUserId());
-        Assert.assertEquals("Debe tener el challengeId como linkId", newCustomerChallenge.getChallengeId(), smsCaptor.getValue().getLinkId());
         Assert.assertEquals("Debe ser evento VERIFICATION_CODE", NotificationEventType.VERIFICATION_CODE, smsCaptor.getValue().getPusherEvent());
         Assert.assertEquals("Debe ser tipo SMS", MessageType.SMS, smsCaptor.getValue().getMessageType());
         Assert.assertEquals("Debe tener el code generado", newCustomerChallenge.getCode(), smsCaptor.getValue().getVerificationCode());
@@ -144,15 +142,15 @@ public class Customer2faServiceCreateChallengeTests extends CustomerAuthenticati
         when(customerChallengeService.createRequestedChallenge(userId, createChallengeRequest))
                 .thenReturn(newCustomerChallenge);
 
-        doNothing().when(notificationRestClient).sendEmail(any());
+        doNothing().when(notificationRestClient).sendMessagePush(any());
 
         customer2faService.createChallenge(userId, createChallengeRequest);
+
 
         // Debe llamar al servicio de email
         ArgumentCaptor<TwoFactorPushRequest> smsCaptor = ArgumentCaptor.forClass(TwoFactorPushRequest.class);
         verify(notificationRestClient, times(1)).sendMessagePush(smsCaptor.capture());
         Assert.assertEquals("Debe tener el userId", userId, smsCaptor.getValue().getUserId());
-        Assert.assertEquals("Debe tener el challengeId como linkId", newCustomerChallenge.getChallengeId(), smsCaptor.getValue().getLinkId());
         Assert.assertEquals("Debe ser evento VERIFICATION_CODE", NotificationEventType.VERIFICATION_CODE, smsCaptor.getValue().getPusherEvent());
         Assert.assertEquals("Debe ser tipo PUSH", MessageType.PUSH_NOTIFICATION, smsCaptor.getValue().getMessageType());
         Assert.assertEquals("Debe tener el code generado", newCustomerChallenge.getCode(), smsCaptor.getValue().getVerificationCode());

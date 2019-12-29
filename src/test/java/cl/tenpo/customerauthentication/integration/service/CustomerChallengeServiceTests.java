@@ -53,6 +53,7 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
     public void createChallenge_WhenNoTrxNoPreviousChallenge_ThenNewChallengeCreatedAndTrxCreated() {
         UUID userId = UUID.randomUUID();
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
+        createChallengeRequest.setChallengeType(ChallengeType.OTP_MAIL);
 
         // Run test
         NewCustomerChallenge newCustomerChallenge = customerChallengeService.createRequestedChallenge(userId, createChallengeRequest);
@@ -61,19 +62,10 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
         Assert.assertEquals("Debe tener el codigo que retorna el mock", mockTwoFactorCode, newCustomerChallenge.getCode());
         Assert.assertEquals("Debe tener el mismo tipo enviado", createChallengeRequest.getChallengeType(), newCustomerChallenge.getChallengeType());
 
-        List<CustomerChallengeEntity> challengeList = (List<CustomerChallengeEntity>) customerChallengeRepository.findAll();
-        Assert.assertEquals("Debe haber 1 challenge", 1, challengeList.size());
-
-        CustomerChallengeEntity challengeEntity = challengeList.get(0);
-        Assert.assertEquals("Debe tener el verifier id que retorna el mock", mockUuid, challengeEntity.getVerifierId());
-        Assert.assertEquals("Debe tener el id devuelto", challengeEntity.getId(), newCustomerChallenge.getChallengeId());
-        Assert.assertEquals("Debe tener status OPEN", ChallengeStatus.OPEN, challengeEntity.getStatus());
-
         List<CustomerTransactionContextEntity> transactionList = (List<CustomerTransactionContextEntity>) customerTransactionContextRespository.findAll();
         Assert.assertEquals("Debe haber 1 transaccion", 1, transactionList.size());
 
         CustomerTransactionContextEntity transactionEntity = transactionList.get(0);
-        //Todo: Assert.assertEquals("El challenge debe estar asociado a la trx existente", transactionEntity.getId(), challengeEntity.getCustomerTransaction().getId());
         Assert.assertEquals("Debe tener el id del usuario", userId, transactionEntity.getUserId());
         Assert.assertEquals("Debe tener el externalId enviado", createChallengeRequest.getExternalId(), transactionEntity.getExternalId());
         Assert.assertEquals("Debe tener el trxType enviado", createChallengeRequest.getTransactionContext().getTxType(), transactionEntity.getTxType());
@@ -84,6 +76,14 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
         Assert.assertEquals("Debe tener el placeName enviado", createChallengeRequest.getTransactionContext().getTxPlaceName(), transactionEntity.getTxPlaceName());
         Assert.assertEquals("Debe tener el countryCode enviado", createChallengeRequest.getTransactionContext().getTxCountryCode(), transactionEntity.getTxCountryCode());
         Assert.assertEquals("Debe tener status PENDING", CustomerTransactionStatus.PENDING, transactionEntity.getStatus());
+
+        List<CustomerChallengeEntity> challengeList = customerChallengeRepository.findByTransactionContextId(transactionEntity.getId());
+        Assert.assertEquals("La trx debe tener solo 1 challenge asociado", 1, challengeList.size());
+
+        CustomerChallengeEntity challengeEntity = challengeList.get(0);
+        Assert.assertEquals("Debe tener el verifier id que retorna el mock", mockUuid, challengeEntity.getVerifierId());
+        Assert.assertEquals("Debe tener el id devuelto", challengeEntity.getId(), newCustomerChallenge.getChallengeId());
+        Assert.assertEquals("Debe tener status OPEN", ChallengeStatus.OPEN, challengeEntity.getStatus());
     }
 
     @Test
@@ -102,20 +102,11 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
         Assert.assertEquals("Debe tener el codigo que retorna el mock", mockTwoFactorCode, newCustomerChallenge.getCode());
         Assert.assertEquals("Debe tener el mismo tipo enviado", createChallengeRequest.getChallengeType(), newCustomerChallenge.getChallengeType());
 
-        List<CustomerChallengeEntity> challengeList = (List<CustomerChallengeEntity>) customerChallengeRepository.findAll();
-        Assert.assertEquals("Debe haber 1 challenge", 1, challengeList.size());
-
-        CustomerChallengeEntity challengeEntity = challengeList.get(0);
-        Assert.assertEquals("Debe tener el verifier id que retorna el mock", mockUuid, challengeEntity.getVerifierId());
-        Assert.assertEquals("Debe tener el id devuelto", challengeEntity.getId(), newCustomerChallenge.getChallengeId());
-        Assert.assertEquals("Debe tener status OPEN", ChallengeStatus.OPEN, challengeEntity.getStatus());
-
         // Debe seguir habiendo solo 1 trx
         List<CustomerTransactionContextEntity> transactionList = (List<CustomerTransactionContextEntity>) customerTransactionContextRespository.findAll();
-        Assert.assertEquals("Debe haber 1 transaccion", 1, transactionList.size());
+        Assert.assertEquals("Debe haber solo 1 transaccion", 1, transactionList.size());
 
         CustomerTransactionContextEntity transactionEntity = transactionList.get(0);
-        //Todo: Assert.assertEquals("El challenge debe estar asociado a la trx existente", transactionEntity.getId(), challengeEntity.getCustomerTransaction().getId());
         Assert.assertEquals("Debe tener el id del usuario", userId, transactionEntity.getUserId());
         Assert.assertEquals("Debe tener el externalId enviado", createChallengeRequest.getExternalId(), transactionEntity.getExternalId());
         Assert.assertEquals("Debe tener el trxType enviado", createChallengeRequest.getTransactionContext().getTxType(), transactionEntity.getTxType());
@@ -126,6 +117,15 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
         Assert.assertEquals("Debe tener el placeName enviado", createChallengeRequest.getTransactionContext().getTxPlaceName(), transactionEntity.getTxPlaceName());
         Assert.assertEquals("Debe tener el countryCode enviado", createChallengeRequest.getTransactionContext().getTxCountryCode(), transactionEntity.getTxCountryCode());
         Assert.assertEquals("Debe tener status PENDING", CustomerTransactionStatus.PENDING, transactionEntity.getStatus());
+
+        List<CustomerChallengeEntity> challengeList = customerChallengeRepository.findByTransactionContextId(transactionEntity.getId());
+        Assert.assertEquals("La trx debe tener solo 1 challenge asociado", 1, challengeList.size());
+
+        CustomerChallengeEntity challengeEntity = challengeList.get(0);
+        Assert.assertEquals("Debe tener el verifier id que retorna el mock", mockUuid, challengeEntity.getVerifierId());
+        Assert.assertEquals("Debe tener el id devuelto", challengeEntity.getId(), newCustomerChallenge.getChallengeId());
+        Assert.assertEquals("Debe tener status OPEN", ChallengeStatus.OPEN, challengeEntity.getStatus());
+
     }
 
     @Test
@@ -135,18 +135,8 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
 
         // Agrega la transaccion ya existente
         CustomerTransactionContextEntity savedTransactionEntity = createTransactionFromRequest(userId, createChallengeRequest);
+        savedTransactionEntity.setCreated(LocalDateTime.now(ZoneId.of("UTC")).minusMinutes(11)); // Creada hace 11 inutos se considera expirada
         customerTransactionContextRespository.save(savedTransactionEntity);
-
-        // Agrega challenge abierto a esta transaccion
-        CustomerChallengeEntity openChallengeEntity = createChallengeEntity(savedTransactionEntity);
-        openChallengeEntity.setChallengeType(createChallengeRequest.getChallengeType());
-        customerChallengeRepository.save(openChallengeEntity);
-
-        // Agrega challenge ya expirado a esta transaccion
-        CustomerChallengeEntity expiredChallengeEntity = createChallengeEntity(savedTransactionEntity);
-        expiredChallengeEntity.setChallengeType(createChallengeRequest.getChallengeType());
-        expiredChallengeEntity.setStatus(ChallengeStatus.EXPIRED);
-        customerChallengeRepository.save(expiredChallengeEntity);
 
         // Run test
         try {
@@ -154,37 +144,6 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
             Assert.fail("No debe pasar por aqui");
         } catch (TenpoException te) {
             Assert.assertEquals("Debe tirar error 1200", "1200", te.getErrorCode());
-        } catch (Exception e) {
-            Assert.fail("Debe tirar TenpoException");
-        }
-    }
-
-    @Test
-    public void createChallenge_whenPreviousChallengeClosed_ThenThrow1201() {
-        UUID userId = UUID.randomUUID();
-        CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
-
-        // Agrega la transaccion ya existente
-        CustomerTransactionContextEntity savedTransactionEntity = createTransactionFromRequest(userId, createChallengeRequest);
-        customerTransactionContextRespository.save(savedTransactionEntity);
-
-        // Agrega challenge abierto a esta transaccion
-        CustomerChallengeEntity openChallengeEntity = createChallengeEntity(savedTransactionEntity);
-        openChallengeEntity.setChallengeType(createChallengeRequest.getChallengeType());
-        customerChallengeRepository.save(openChallengeEntity);
-
-        // Agrega challenge ya expirado a esta transaccion
-        CustomerChallengeEntity expiredChallengeEntity = createChallengeEntity(savedTransactionEntity);
-        expiredChallengeEntity.setChallengeType(createChallengeRequest.getChallengeType());
-        expiredChallengeEntity.setStatus(ChallengeStatus.USED);
-        customerChallengeRepository.save(expiredChallengeEntity);
-
-        // Run test
-        try {
-            customerChallengeService.createRequestedChallenge(userId, createChallengeRequest);
-            Assert.fail("No debe pasar por aqui");
-        } catch (TenpoException te) {
-            Assert.assertEquals("Debe tirar error 1201", "1201", te.getErrorCode());
         } catch (Exception e) {
             Assert.fail("Debe tirar TenpoException");
         }
@@ -223,8 +182,8 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
         Assert.assertEquals("Debe ser el mismo challenge", openChallengeEntity.getChallengeType(), newCustomerChallenge.getChallengeType());
         Assert.assertEquals("Debe tener el codigo devuelto por el mock", mockTwoFactorCode, newCustomerChallenge.getCode());
 
-        List<CustomerChallengeEntity> challengeList = (List<CustomerChallengeEntity>) customerChallengeRepository.findAll();
-        Assert.assertEquals("No debe crearse un nuevo challenge, siguen habiendo 3", 3, challengeList.size());
+        List<CustomerChallengeEntity> challengeList = customerChallengeRepository.findByTransactionContextId(savedTransactionEntity.getId());
+        Assert.assertEquals("No debe crearse un nuevo challenge asociado, siguen habiendo 3", 3, challengeList.size());
     }
 
     @Test
@@ -245,11 +204,17 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
         // Run test
         NewCustomerChallenge newCustomerChallenge = customerChallengeService.createRequestedChallenge(userId, createChallengeRequest);
         Assert.assertNotEquals("Debe ser distinto challenge", openChallengeEntity.getId(), newCustomerChallenge.getChallengeId());
+        Assert.assertNotEquals("Debe tener el id retornado por el mock", mockUuid, newCustomerChallenge.getChallengeId());
         Assert.assertEquals("Debe ser el mismo tipo de challenge", openChallengeEntity.getChallengeType(), newCustomerChallenge.getChallengeType());
         Assert.assertEquals("Debe tener el codigo devuelto por el mock", mockTwoFactorCode, newCustomerChallenge.getCode());
 
-        List<CustomerChallengeEntity> challengeList = (List<CustomerChallengeEntity>) customerChallengeRepository.findAll();
+        List<CustomerChallengeEntity> challengeList = customerChallengeRepository.findByTransactionContextId(savedTransactionEntity.getId());
         Assert.assertEquals("Debe crearse un nuevo challenge", 2, challengeList.size());
+
+        CustomerChallengeEntity storedChalengeEntity = challengeList.stream().filter(c -> c.getVerifierId().equals(mockUuid)).findAny().orElse(null);
+        Assert.assertNotNull("Debe existir con el id retornado por el mock", storedChalengeEntity);
+        Assert.assertEquals("Debe ser del mismo tipo", openChallengeEntity.getChallengeType(), storedChalengeEntity.getChallengeType());
+        Assert.assertEquals("Debe estar en estado open", ChallengeStatus.OPEN, storedChalengeEntity.getStatus());
     }
 
     @Test
@@ -263,7 +228,7 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
 
         // Agrega challenge abierto a esta transaccion con verifier uuid diferent
         CustomerChallengeEntity openChallengeEntity = createChallengeEntity(savedTransactionEntity);
-        openChallengeEntity.setVerifierId(mockUuid);
+        openChallengeEntity.setVerifierId(UUID.fromString("123e4567-e89b-12d3-a456-426655440999"));
         openChallengeEntity.setChallengeType(createChallengeRequest.getChallengeType());
         openChallengeEntity.setCreated(LocalDateTime.now(ZoneId.of("UTC")).minusSeconds(31)); // Muy viejo
         openChallengeEntity = customerChallengeRepository.save(openChallengeEntity);
@@ -274,8 +239,14 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
         Assert.assertEquals("Debe ser el mismo tipo de challenge", openChallengeEntity.getChallengeType(), newCustomerChallenge.getChallengeType());
         Assert.assertEquals("Debe tener el codigo devuelto por el mock", mockTwoFactorCode, newCustomerChallenge.getCode());
 
-        List<CustomerChallengeEntity> challengeList = (List<CustomerChallengeEntity>) customerChallengeRepository.findAll();
+        List<CustomerChallengeEntity> challengeList = customerChallengeRepository.findByTransactionContextId(savedTransactionEntity.getId());
         Assert.assertEquals("Debe crearse un nuevo challenge", 2, challengeList.size());
+
+        // Validar que el nuevo challenge se haya creado correctamente
+        CustomerChallengeEntity storedChalengeEntity = challengeList.stream().filter(c -> c.getVerifierId().equals(mockUuid)).findAny().orElse(null);
+        Assert.assertNotNull("Debe existir con el id retornado por el mock", storedChalengeEntity);
+        Assert.assertEquals("Debe ser del mismo tipo", openChallengeEntity.getChallengeType(), storedChalengeEntity.getChallengeType());
+        Assert.assertEquals("Debe estar en estado open", ChallengeStatus.OPEN, storedChalengeEntity.getStatus());
     }
 
     private CustomerTransactionContextEntity createTransactionFromRequest(UUID userId, CreateChallengeRequest createChallengeRequest) {
@@ -291,6 +262,8 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
         savedTransactionEntity.setTxPlaceName(createChallengeRequest.getTransactionContext().getTxPlaceName());
         savedTransactionEntity.setTxOther(createChallengeRequest.getTransactionContext().getTxOther());
         savedTransactionEntity.setStatus(CustomerTransactionStatus.PENDING);
+        savedTransactionEntity.setCreated(LocalDateTime.now(ZoneId.of("UTC")));
+        savedTransactionEntity.setUpdated(LocalDateTime.now(ZoneId.of("UTC")));
         return savedTransactionEntity;
     }
 

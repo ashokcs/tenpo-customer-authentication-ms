@@ -60,12 +60,12 @@ krealo:
             getUserByProvider: ${krealo.cloud.users.baseUrl}/${krealo.cloud.version}/user-management/identity-provider/{provider}/me
             implement: mock
         notifications:
-            baseUrl: http://ab0ea66e8ef6711e8af090ab676248e6-1957711363.us-east-1.elb.amazonaws.com:8080
+            baseUrl: http://52.179.169.65:8080
             sendCreateNotificationSettingResourcePath: ${krealo.cloud.notifications.baseUrl}/${krealo.cloud.version}/customer-management/notification_setting/{userId}/configuration
             sendEmailNotificationResourcePath: ${krealo.cloud.notifications.baseUrl}/${krealo.cloud.version}/customer-management/notification/email
             sendNotificationResourcePath: ${krealo.cloud.notifications.baseUrl}/${krealo.cloud.version}/customer-management/notification/internal
-            sendGenericEmailResourcePath: ${krealo.cloud.users.baseUrl}/${krealo.cloud.version}/customer-management/notification/email/generic
-            implement: mock
+            sendGenericEmailResourcePath: ${krealo.cloud.notifications.baseUrl}/${krealo.cloud.version}/customer-management/notification/email/generic
+            implement: real
         cards:
             baseUrl: http://cards-ms:8080
             checkIfCardBelongsToUser: ${krealo.cloud.cards.baseUrl}/${krealo.cloud.version}/cards-management/cards/check-card

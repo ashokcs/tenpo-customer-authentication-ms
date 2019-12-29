@@ -6,8 +6,8 @@ public final class ErrorCode {
         throw new UnsupportedOperationException("Constant class");
     }
 
-    public static final String CHALLENGE_EXPIRED = "1200";
-    public static final String CHALLENGE_CANCELED = "1201";
+    public static final String TRANSACTION_CONTEXT_EXPIRED = "1200";
+    public static final String TRANSACTION_CONTEXT_CANCELED = "1201";
     public static final String USER_NOT_FOUND_OR_LOCKED = "1150";
 
     public static final String PUSH_NOTIFICATION_ERROR = "1300";

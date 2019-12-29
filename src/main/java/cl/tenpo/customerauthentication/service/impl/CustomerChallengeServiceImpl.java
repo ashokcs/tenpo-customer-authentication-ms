@@ -16,11 +16,8 @@ import cl.tenpo.customerauthentication.model.NewCustomerChallenge;
 import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.jpa.provider.HibernateUtils;
 import org.springframework.expression.ParseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -68,31 +65,20 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
                     .txPlaceName(createChallengeRequest.getTransactionContext().getTxPlaceName())
                     .txCountryCode(createChallengeRequest.getTransactionContext().getTxCountryCode())
                     .status(CustomerTransactionStatus.PENDING)
-                    .created(LocalDateTime.now())
-                    .updated(LocalDateTime.now())
+                    .created(LocalDateTime.now(ZoneId.of("UTC")))
+                    .updated(LocalDateTime.now(ZoneId.of("UTC")))
                     .build());
         }
 
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
+
+        // Revisar si esta transaccion aun no ha expirado
+        if (now.isAfter(customerTrx.get().getCreated().plusMinutes(10))) {
+            log.info("[createRequestedChallenge] Trx context ya ha expirado.");
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.TRANSACTION_CONTEXT_EXPIRED);
+        }
 
         List<CustomerChallengeEntity> challengeList = customerChallengeRepository.findByTransactionContextId(customerTrx.get().getId());
-
-        // Revisar que no se haya expirado los desafios para esta transaccion
-        Optional<CustomerChallengeEntity> closedChallenge = challengeList.stream()
-                .filter(challenge -> { return ChallengeStatus.EXPIRED.equals(challenge.getStatus()); })
-                .findAny();
-        if (closedChallenge.isPresent()) {
-            log.info("[createRequestedChallenge] Ya existia un challenge expirado para esa trx.");
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.CHALLENGE_EXPIRED);
-        }
-
-        // Revisar que no se haya cancelado/usado los desafios para esta transaccion
-        Optional<CustomerChallengeEntity> canceledChallenge = challengeList.stream()
-                .filter(challenge -> { return ChallengeStatus.USED.equals(challenge.getStatus()); })
-                .findAny();
-        if (canceledChallenge.isPresent()) {
-            log.info("[createRequestedChallenge] Ya existia un challenge usado para esa trx.");
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.CHALLENGE_CANCELED);
-        }
 
         // Revisar si existe alguno creado hace menos de 30 segundos, del mismo tipo y estado OPEN
         Optional<CustomerChallengeEntity> ongoingChallenge = challengeList.stream()
