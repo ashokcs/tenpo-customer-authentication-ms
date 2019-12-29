@@ -1,5 +1,6 @@
 package cl.tenpo.customerauthentication.externalservice.cards;
 
+import cl.tenpo.customerauthentication.exception.TenpoException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -12,7 +13,7 @@ import java.util.UUID;
 public class CardRestClientMock implements CardRestClient {
 
     @Override
-    public void checkIfCardBelongsToUser(UUID userId, String truncatedPan) {
+    public void checkIfCardBelongsToUser(UUID userId, String truncatedPan)  throws TenpoException {
 
     }
 }

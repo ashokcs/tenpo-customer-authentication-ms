@@ -47,3 +47,14 @@ spec:
   ports:
     - port: 8080
 ---
+kind: Service
+apiVersion: v1
+metadata:
+  name: cards-ms
+  namespace: customer-authentication
+spec:
+  type: ExternalName
+  externalName: cards-ms.default.svc.cluster.local
+  ports:
+    - port: 8080
+---
