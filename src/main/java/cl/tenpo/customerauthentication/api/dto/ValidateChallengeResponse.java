@@ -1,6 +1,9 @@
 package cl.tenpo.customerauthentication.api.dto;
 
+import cl.tenpo.customerauthentication.model.ChallengeResult;
 import lombok.*;
+
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -9,7 +12,7 @@ import lombok.*;
 @Builder
 public class ValidateChallengeResponse {
 
-    private String externalId;
-    private String result;
+    private UUID externalId;
+    private ChallengeResult result;
 
 }

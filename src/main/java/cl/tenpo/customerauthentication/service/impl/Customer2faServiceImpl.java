@@ -2,6 +2,7 @@ package cl.tenpo.customerauthentication.service.impl;
 
 import cl.tenpo.customerauthentication.api.dto.*;
 import cl.tenpo.customerauthentication.component.AzureClient;
+import cl.tenpo.customerauthentication.dto.CustomerTransactionContextDTO;
 import cl.tenpo.customerauthentication.dto.JwtDTO;
 import cl.tenpo.customerauthentication.exception.TenpoException;
 import cl.tenpo.customerauthentication.externalservice.azure.dto.TokenResponse;
@@ -9,6 +10,7 @@ import cl.tenpo.customerauthentication.externalservice.cards.CardRestClient;
 import cl.tenpo.customerauthentication.externalservice.user.UserRestClient;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserResponse;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserStateType;
+import cl.tenpo.customerauthentication.model.ChallengeResult;
 import cl.tenpo.customerauthentication.model.ChallengeType;
 import cl.tenpo.customerauthentication.service.Customer2faService;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
@@ -81,7 +83,29 @@ public class Customer2faServiceImpl implements Customer2faService {
     @Override
     public ValidateChallengeResponse validateChallenge(UUID userId, ValidateChallengeRequest request) {
 
-        return null;
+        Optional<CustomerTransactionContextDTO> customerTransactionContextDTO = customerChallengeService.findByExternalId(request.getExternalId());
+        if(!customerTransactionContextDTO.isPresent()){
+            log.error("[validateChallenge] No se encontró el external_id. Llame primero a POST");
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY,"1100", "No se encontró el external_id. Llame primero a POST");
+        }
+        Optional<UserResponse> userResponseDto;
+        try {
+            userResponseDto = userRestClient.getUser(userId);
+        }catch (Exception e){
+            log.error("[validateChallenge] Error al verificar usuario");
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY,"500", "Error interno del servicio al verificar usuario");
+        }
+
+        if(!userResponseDto.isPresent()|| !userResponseDto.get().getState().equals(UserStateType.ACTIVE)){
+            log.error("[validateChallenge] El cliente no existe o esta bloqueado");
+            throw new TenpoException(HttpStatus.NOT_FOUND,"1150", "El cliente no existe o está bloqueado");
+        }
+        //TODO: Llamada a verifier-ms con codigo a validar
+
+        ValidateChallengeResponse response = ValidateChallengeResponse.builder()
+                                                                    .result(ChallengeResult.AUTH_EXITOSA)
+                                                                    .externalId(customerTransactionContextDTO.get().getExternalId()).build();
+        return response;
     }
 
     @Override
