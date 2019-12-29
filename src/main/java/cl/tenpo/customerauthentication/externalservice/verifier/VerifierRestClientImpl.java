@@ -35,7 +35,7 @@ public class VerifierRestClientImpl implements VerifierRestClient {
 
             StringBuilder resourcePathBuilder = new StringBuilder();
             VerifierProps verifierProps = config.getVerifier();
-            resourcePathBuilder.append(verifierProps.getGetGenerateTwoFactorResourcePath());
+            resourcePathBuilder.append(verifierProps.getGenerateTwoFactorResourcePath());
 
             if (codeId != null) {
                 resourcePathBuilder.append(String.format("?id=%s", codeId));

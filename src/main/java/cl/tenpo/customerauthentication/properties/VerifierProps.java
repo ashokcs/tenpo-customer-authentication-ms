@@ -9,5 +9,5 @@ import lombok.Setter;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class VerifierProps {
 
-    private String getGenerateTwoFactorResourcePath;
+    private String generateTwoFactorResourcePath;
 }

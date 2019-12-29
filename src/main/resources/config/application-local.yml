@@ -72,5 +72,5 @@ krealo:
             implement: mock
         verifier:
             baseUrl: http://40.123.30.130:8080
-            getGenerateTwoFactorResourcePath: ${krealo.cloud.verifier.baseUrl}/${krealo.cloud.version}/account-management/accounts/{userId}/two-factor/generate-code
+            generateTwoFactorResourcePath: ${krealo.cloud.verifier.baseUrl}/${krealo.cloud.version}/account-management/accounts/{userId}/two-factor/generate-code
             implement: mock
