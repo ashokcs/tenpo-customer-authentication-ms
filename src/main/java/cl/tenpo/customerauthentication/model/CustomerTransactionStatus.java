@@ -4,5 +4,6 @@ public enum CustomerTransactionStatus {
     PENDING,
     AUTHORIZED,
     REJECTED,
-    CANCELADO
+    EXPIRED,
+    CANCEL
 }

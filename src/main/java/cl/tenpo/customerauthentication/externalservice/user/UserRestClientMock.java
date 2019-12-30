@@ -58,7 +58,7 @@ public class UserRestClientMock implements UserRestClient {
     }
 
     @Override
-    public Optional<UserResponse> getUserByProvider(UUID userId) throws IOException {
+    public Optional<UserResponse> getUserByProvider(UUID userId) {
         return Optional.empty();
     }
 

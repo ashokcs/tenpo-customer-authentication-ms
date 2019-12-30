@@ -17,6 +17,7 @@ import java.util.UUID;
 public class CustomerTransactionContextDTO {
 
     private UUID id;
+    private UUID userId;
     private UUID externalId;
     private String txType;
     private BigDecimal txAmount;
@@ -28,5 +29,6 @@ public class CustomerTransactionContextDTO {
     private CustomerTransactionStatus status;
     private LocalDateTime created;
     private LocalDateTime updated;
+    private Integer attempts;
     //private List<CustomerChallengeDTO> challenge;
 }

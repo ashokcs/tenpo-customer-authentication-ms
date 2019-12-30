@@ -17,6 +17,7 @@ public class CustomerChallengeDTO {
 
     private UUID id;
     private CustomerTransactionContextDTO customerTransaction;
+    private UUID verifierId;
     private ChallengeType challengeType;
     private String callbackUri;
     private ChallengeStatus status;
