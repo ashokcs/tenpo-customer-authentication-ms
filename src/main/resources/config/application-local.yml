@@ -73,8 +73,3 @@ krealo:
         verifier:
             baseUrl: http://40.123.30.130:8080
             generateTwoFactorResourcePath: ${krealo.cloud.verifier.baseUrl}/${krealo.cloud.version}/account-management/accounts/{userId}/two-factor/generate-code
-constants:
-    notifications:
-        twoFactorMailFrom: 'authentication@tenpo.cl'
-        twoFactorMailSubject: 'Código verificación'
-        twoFactorMailTemplate: 'd1457408-3e06-45fd-bc03-a953231f1496'
