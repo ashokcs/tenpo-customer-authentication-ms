@@ -31,12 +31,20 @@ kafka:
 logging.level:
   cl.tenpo.customerauthentication: DEBUG
 
+constants:
+  notifications:
+    twoFactorMailFrom: 'authentication@tenpo.cl'
+    twoFactorMailSubject: 'Código verificación'
+    twoFactorMailTemplate: 'd1457408-3e06-45fd-bc03-a953231f1496'
+
 krealo:
   security:
     disabledFor:
       - /**
   cloud:
     users:
+      implement: real
+    notifications:
       implement: real
     cards:
       implement: real

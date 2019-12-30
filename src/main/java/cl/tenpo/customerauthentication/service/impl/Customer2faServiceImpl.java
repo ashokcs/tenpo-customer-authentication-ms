@@ -6,10 +6,19 @@ import cl.tenpo.customerauthentication.dto.JwtDTO;
 import cl.tenpo.customerauthentication.exception.TenpoException;
 import cl.tenpo.customerauthentication.externalservice.azure.dto.TokenResponse;
 import cl.tenpo.customerauthentication.externalservice.cards.CardRestClient;
+import cl.tenpo.customerauthentication.constants.NotificationsProperties;
+import cl.tenpo.customerauthentication.constants.ErrorCode;
+import cl.tenpo.customerauthentication.database.repository.CustomerTransactionContextRespository;
+import cl.tenpo.customerauthentication.externalservice.notification.NotificationRestClient;
+import cl.tenpo.customerauthentication.externalservice.notification.dto.EmailDto;
+import cl.tenpo.customerauthentication.externalservice.notification.dto.NotificationEventType;
+import cl.tenpo.customerauthentication.externalservice.notification.dto.TwoFactorPushRequest;
 import cl.tenpo.customerauthentication.externalservice.user.UserRestClient;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserResponse;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserStateType;
 import cl.tenpo.customerauthentication.model.ChallengeType;
+import cl.tenpo.customerauthentication.model.NewCustomerChallenge;
+import cl.tenpo.customerauthentication.properties.VerifierProps;
 import cl.tenpo.customerauthentication.service.Customer2faService;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
 import cl.tenpo.customerauthentication.util.JwtUtil;
@@ -18,11 +27,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static cl.tenpo.customerauthentication.externalservice.notification.dto.MessageType.PUSH_NOTIFICATION;
+import static cl.tenpo.customerauthentication.externalservice.notification.dto.MessageType.SMS;
 
 @Service
 @Slf4j
@@ -39,6 +49,14 @@ public class Customer2faServiceImpl implements Customer2faService {
     @Autowired
     private CustomerChallengeService customerChallengeService;
 
+    @Autowired
+    private CustomerTransactionContextRespository transactionContextRespository;
+
+    @Autowired
+    private NotificationRestClient notificationRestClient;
+
+    @Autowired
+    private NotificationsProperties notificationsProperties;
 
     @Override
     public TokenResponse login(CustomerLoginRequest request) {
@@ -75,7 +93,19 @@ public class Customer2faServiceImpl implements Customer2faService {
 
     @Override
     public void createChallenge(UUID userId, CreateChallengeRequest request) {
+        log.info(String.format("[createChallenge] Challenge request for user %s [%s]", userId, request));
 
+        // Validar que el usuario no esta bloqueado
+        UserResponse userResponse = getAndValidateUser(userId);
+        log.info(String.format("[createChallenge] Usuario validado: %s", userResponse.getDocumentNumber()));
+
+        // Crear el challenge
+        NewCustomerChallenge newCustomerChallenge = customerChallengeService.createRequestedChallenge(userId, request);
+        log.info(String.format("[createChallenge] Challenge creado: [id:%s][code:XXX%s]", newCustomerChallenge.getChallengeId(), newCustomerChallenge.getCode().substring(3)));
+
+        // Enviar el challenge al usuario
+        sendChallenge(newCustomerChallenge, userResponse);
+        log.info("[createChallenge] Challenge enviado a usuario.");
     }
 
     @Override
@@ -104,4 +134,77 @@ public class Customer2faServiceImpl implements Customer2faService {
         return Stream.of(ChallengeType.values()).map(Enum::name).collect(Collectors.toList());
     }
 
+    private UserResponse getAndValidateUser(UUID userId) {
+        Optional<UserResponse> requestUser;
+        try {
+            requestUser = userRestClient.getUser(userId);
+        } catch (Exception e) {
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.USER_NOT_FOUND_OR_LOCKED);
+        }
+
+        if (!requestUser.isPresent()) {
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.USER_NOT_FOUND_OR_LOCKED);
+        }
+        if (!requestUser.get().getState().equals(UserStateType.ACTIVE)) {
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.USER_NOT_FOUND_OR_LOCKED);
+        }
+
+        return requestUser.get();
+    }
+
+
+    private void sendChallenge(NewCustomerChallenge newCustomerChallenge, UserResponse userResponse) {
+
+        try {
+            switch (newCustomerChallenge.getChallengeType()) {
+                case OTP_MAIL: {
+                    EmailDto emailDto = EmailDto.builder()
+                            .from(notificationsProperties.getTwoFactorMailFrom())
+                            .to(userResponse.getEmail())
+                            .referenceId(newCustomerChallenge.getChallengeId().toString())
+                            .subject(notificationsProperties.getTwoFactorMailSubject())
+                            .template(notificationsProperties.getTwoFactorMailTemplate())
+                            .params(buildTwoFactorMailParam(
+                                    userResponse.getFirstName(),
+                                    newCustomerChallenge.getCode()))
+                            .build();
+                    notificationRestClient.sendEmail(emailDto);
+                    break;
+                }
+                case APP: {
+                    // Todo: no se implementa por ahora
+                    break;
+                }
+                case OTP_SMS: {
+                    TwoFactorPushRequest twoFactorPushRequest = TwoFactorPushRequest.builder()
+                            .userId(userResponse.getId())
+                            .pusherEvent(NotificationEventType.VERIFICATION_CODE)
+                            .messageType(SMS)
+                            .verificationCode(newCustomerChallenge.getCode())
+                            .build();
+                    notificationRestClient.sendMessagePush(twoFactorPushRequest);
+                    break;
+                }
+                case OTP_PUSH: {
+                    TwoFactorPushRequest twoFactorPushRequest = TwoFactorPushRequest.builder()
+                            .userId(userResponse.getId())
+                            .pusherEvent(NotificationEventType.VERIFICATION_CODE)
+                            .messageType(PUSH_NOTIFICATION)
+                            .verificationCode(newCustomerChallenge.getCode())
+                            .build();
+                    notificationRestClient.sendMessagePush(twoFactorPushRequest);
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            throw new TenpoException(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.NOTIFICATION_ERROR);
+        }
+    }
+
+    private Map<String, String> buildTwoFactorMailParam(String name, String twoFactorCode) {
+        Map<String, String> mailParam = new HashMap<>();
+        mailParam.put("user_name", name);
+        mailParam.put("-code-", twoFactorCode);
+        return mailParam;
+    }
 }

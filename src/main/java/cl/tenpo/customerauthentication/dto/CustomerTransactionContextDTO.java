@@ -17,6 +17,7 @@ import java.util.UUID;
 public class CustomerTransactionContextDTO {
 
     private UUID id;
+    private UUID userId;
     private UUID externalId;
     private String txType;
     private BigDecimal txAmount;

@@ -14,4 +14,5 @@ public class CloudProps {
     private NotificationsProps notifications;
     private UsersProps users;
     private CardsProps cards;
+    private VerifierProps verifier;
 }
