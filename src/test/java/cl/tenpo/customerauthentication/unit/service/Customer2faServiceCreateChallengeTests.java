@@ -172,7 +172,7 @@ public class Customer2faServiceCreateChallengeTests extends CustomerAuthenticati
             customer2faService.createChallenge(userId, createChallengeRequest);
             Assert.fail("Debe tirar una excepcion tenpo");
         } catch (TenpoException te) {
-            Assert.assertEquals("Debe tener codigo 422", HttpStatus.UNPROCESSABLE_ENTITY, te.getCode());
+            Assert.assertEquals("Debe tener codigo 422", HttpStatus.NOT_FOUND, te.getCode());
             Assert.assertEquals("Debe tener codigo user not found", ErrorCode.USER_NOT_FOUND_OR_LOCKED, te.getErrorCode());
         } catch (Exception e) {
             Assert.fail("Debe tirar una excepcion tenpo");
@@ -196,7 +196,7 @@ public class Customer2faServiceCreateChallengeTests extends CustomerAuthenticati
             customer2faService.createChallenge(userId, createChallengeRequest);
             Assert.fail("Debe tirar una excepcion tenpo");
         } catch (TenpoException te) {
-            Assert.assertEquals("Debe tener codigo 422", HttpStatus.UNPROCESSABLE_ENTITY, te.getCode());
+            Assert.assertEquals("Debe tener codigo 422", HttpStatus.NOT_FOUND, te.getCode());
             Assert.assertEquals("Debe tener codigo user invalid", ErrorCode.USER_NOT_FOUND_OR_LOCKED, te.getErrorCode());
         } catch (Exception e) {
             Assert.fail("Debe tirar una excepcion tenpo");
@@ -216,7 +216,7 @@ public class Customer2faServiceCreateChallengeTests extends CustomerAuthenticati
             customer2faService.createChallenge(userId, createChallengeRequest);
             Assert.fail("Debe tirar una excepcion tenpo");
         } catch (TenpoException te) {
-            Assert.assertEquals("Debe tener codigo 422", HttpStatus.UNPROCESSABLE_ENTITY, te.getCode());
+            Assert.assertEquals("Debe tener codigo 422", HttpStatus.NOT_FOUND, te.getCode());
             Assert.assertEquals("Debe tener codigo user not found", ErrorCode.USER_NOT_FOUND_OR_LOCKED, te.getErrorCode());
         } catch (Exception e) {
             Assert.fail("Debe tirar una excepcion tenpo");
