@@ -42,8 +42,6 @@ krealo:
       implement: real
     cards:
       implement: real
-    verifier:
-      implement: real
   external:
     api:
       freshdesk:

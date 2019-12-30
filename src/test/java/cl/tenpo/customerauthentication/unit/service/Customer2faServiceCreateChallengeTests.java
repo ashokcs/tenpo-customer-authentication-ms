@@ -2,7 +2,7 @@ package cl.tenpo.customerauthentication.unit.service;
 
 import cl.tenpo.customerauthentication.CustomerAuthenticationMsApplicationTests;
 import cl.tenpo.customerauthentication.api.dto.CreateChallengeRequest;
-import cl.tenpo.customerauthentication.constants.CustomerAuthenticationConstants;
+import cl.tenpo.customerauthentication.constants.NotificationsProperties;
 import cl.tenpo.customerauthentication.constants.ErrorCode;
 import cl.tenpo.customerauthentication.exception.TenpoException;
 import cl.tenpo.customerauthentication.externalservice.notification.NotificationRestClient;
@@ -50,6 +50,9 @@ public class Customer2faServiceCreateChallengeTests extends CustomerAuthenticati
     @MockBean
     NotificationRestClient notificationRestClient;
 
+    @Autowired
+    NotificationsProperties notificationsProperties;
+
     @Test
     public void createChallenge_sendEmail() throws IOException {
         UUID userId = UUID.randomUUID();
@@ -78,11 +81,11 @@ public class Customer2faServiceCreateChallengeTests extends CustomerAuthenticati
         // Debe llamar al servicio de email
         ArgumentCaptor<EmailDto> mailCaptor = ArgumentCaptor.forClass(EmailDto.class);
         verify(notificationRestClient, times(1)).sendEmail(mailCaptor.capture());
-        Assert.assertEquals("From twofactor mail", CustomerAuthenticationConstants.TWO_FACTOR_MAIL_FROM, mailCaptor.getValue().getFrom());
+        Assert.assertEquals("From twofactor mail", notificationsProperties.getTwoFactorMailFrom(), mailCaptor.getValue().getFrom());
         Assert.assertEquals("To user mail", userResponse.getEmail(), mailCaptor.getValue().getTo());
         Assert.assertEquals("ReferenceId del challenge", newCustomerChallenge.getChallengeId().toString(), mailCaptor.getValue().getReferenceId());
-        Assert.assertEquals("TwoFactor subject", CustomerAuthenticationConstants.TWO_FACTOR_MAIL_SUBJECT, mailCaptor.getValue().getSubject());
-        Assert.assertEquals("template two factor", CustomerAuthenticationConstants.TWO_FACTOR_MAIL_TEMPLATE, mailCaptor.getValue().getTemplate());
+        Assert.assertEquals("TwoFactor subject", notificationsProperties.getTwoFactorMailSubject(), mailCaptor.getValue().getSubject());
+        Assert.assertEquals("template two factor", notificationsProperties.getTwoFactorMailTemplate(), mailCaptor.getValue().getTemplate());
 
         Map<String, String> mailMap = mailCaptor.getValue().getParams();
         Assert.assertEquals("Debe enviarse con el nombre", userResponse.getFirstName(), mailMap.get("user_name"));

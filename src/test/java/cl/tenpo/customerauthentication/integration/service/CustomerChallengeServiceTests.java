@@ -7,6 +7,8 @@ import cl.tenpo.customerauthentication.database.entity.CustomerTransactionContex
 import cl.tenpo.customerauthentication.database.repository.CustomerChallengeRepository;
 import cl.tenpo.customerauthentication.database.repository.CustomerTransactionContextRespository;
 import cl.tenpo.customerauthentication.exception.TenpoException;
+import cl.tenpo.customerauthentication.externalservice.verifier.VerifierRestClient;
+import cl.tenpo.customerauthentication.externalservice.verifier.dto.GenerateTwoFactorResponse;
 import cl.tenpo.customerauthentication.model.ChallengeStatus;
 import cl.tenpo.customerauthentication.model.ChallengeType;
 import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
@@ -19,12 +21,16 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -42,6 +48,9 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
     @Autowired
     private CustomerTransactionContextRespository customerTransactionContextRespository;
 
+    @MockBean
+    private VerifierRestClient verifierRestClient;
+
     @Before
     @After
     public void clearDB() {
@@ -51,6 +60,8 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
 
     @Test
     public void createChallenge_WhenNoTrxNoPreviousChallenge_ThenNewChallengeCreatedAndTrxCreated() {
+        prepareVerifierMock();
+
         UUID userId = UUID.randomUUID();
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
         createChallengeRequest.setChallengeType(ChallengeType.OTP_MAIL);
@@ -88,6 +99,8 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
 
     @Test
     public void createChallenge_WhenAlreadyTrxNoPreviousChallenge_ThenNewChallengeCreatedAndNoNewTrx() {
+        prepareVerifierMock();
+
         UUID userId = UUID.randomUUID();
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
 
@@ -151,6 +164,8 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
 
     @Test
     public void createChallenge_whenPreviousChallengeRecentAndValid_ThenReuse() {
+        prepareVerifierMock();
+
         UUID userId = UUID.randomUUID();
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
 
@@ -188,6 +203,8 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
 
     @Test
     public void createChallenge_whenPreviousChallengeRecentButExpired_ThenCreateNew() {
+        prepareVerifierMock();
+
         UUID userId = UUID.randomUUID();
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
 
@@ -219,6 +236,8 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
 
     @Test
     public void createChallenge_whenPreviousChallengeTooOldAndValid_ThenCreateNew() {
+        prepareVerifierMock();
+
         UUID userId = UUID.randomUUID();
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
 
@@ -278,5 +297,12 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
         customerChallengeEntity.setCreated(LocalDateTime.now(ZoneId.of("UTC")));
         customerChallengeEntity.setUpdated(LocalDateTime.now(ZoneId.of("UTC")));
         return customerChallengeEntity;
+    }
+
+    private void prepareVerifierMock() {
+        GenerateTwoFactorResponse verifierResponse = new GenerateTwoFactorResponse();
+        verifierResponse.setId(mockUuid);
+        verifierResponse.setGeneratedCode(mockTwoFactorCode);
+        when(verifierRestClient.generateTwoFactorCode(any(), any(), any())).thenReturn(verifierResponse);
     }
 }

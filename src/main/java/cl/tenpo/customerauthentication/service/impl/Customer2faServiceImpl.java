@@ -6,7 +6,7 @@ import cl.tenpo.customerauthentication.dto.JwtDTO;
 import cl.tenpo.customerauthentication.exception.TenpoException;
 import cl.tenpo.customerauthentication.externalservice.azure.dto.TokenResponse;
 import cl.tenpo.customerauthentication.externalservice.cards.CardRestClient;
-import cl.tenpo.customerauthentication.constants.CustomerAuthenticationConstants;
+import cl.tenpo.customerauthentication.constants.NotificationsProperties;
 import cl.tenpo.customerauthentication.constants.ErrorCode;
 import cl.tenpo.customerauthentication.database.repository.CustomerTransactionContextRespository;
 import cl.tenpo.customerauthentication.externalservice.notification.NotificationRestClient;
@@ -18,6 +18,7 @@ import cl.tenpo.customerauthentication.externalservice.user.dto.UserResponse;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserStateType;
 import cl.tenpo.customerauthentication.model.ChallengeType;
 import cl.tenpo.customerauthentication.model.NewCustomerChallenge;
+import cl.tenpo.customerauthentication.properties.VerifierProps;
 import cl.tenpo.customerauthentication.service.Customer2faService;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
 import cl.tenpo.customerauthentication.util.JwtUtil;
@@ -26,9 +27,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -56,6 +54,9 @@ public class Customer2faServiceImpl implements Customer2faService {
 
     @Autowired
     private NotificationRestClient notificationRestClient;
+
+    @Autowired
+    private NotificationsProperties notificationsProperties;
 
     @Override
     public TokenResponse login(CustomerLoginRequest request) {
@@ -158,11 +159,11 @@ public class Customer2faServiceImpl implements Customer2faService {
             switch (newCustomerChallenge.getChallengeType()) {
                 case OTP_MAIL: {
                     EmailDto emailDto = EmailDto.builder()
-                            .from(CustomerAuthenticationConstants.TWO_FACTOR_MAIL_FROM)
+                            .from(notificationsProperties.getTwoFactorMailFrom())
                             .to(userResponse.getEmail())
                             .referenceId(newCustomerChallenge.getChallengeId().toString())
-                            .subject(CustomerAuthenticationConstants.TWO_FACTOR_MAIL_SUBJECT)
-                            .template(CustomerAuthenticationConstants.TWO_FACTOR_MAIL_TEMPLATE)
+                            .subject(notificationsProperties.getTwoFactorMailSubject())
+                            .template(notificationsProperties.getTwoFactorMailTemplate())
                             .params(buildTwoFactorMailParam(
                                     userResponse.getFirstName(),
                                     newCustomerChallenge.getCode()))

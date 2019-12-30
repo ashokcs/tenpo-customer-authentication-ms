@@ -19,7 +19,6 @@ import java.util.UUID;
 
 @Component
 @Slf4j
-@ConditionalOnProperty(name = "krealo.cloud.verifier.implement", havingValue = "real")
 public class VerifierRestClientImpl implements VerifierRestClient {
 
     @Autowired
