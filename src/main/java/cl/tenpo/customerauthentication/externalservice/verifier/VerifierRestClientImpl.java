@@ -61,4 +61,28 @@ public class VerifierRestClientImpl implements VerifierRestClient {
             throw (e);
         }
     }
+
+    @Override
+    public boolean validateTwoFactorCode(UUID userId, String code) {
+        try {
+            log.info("[validateTwoFactorCode] validating code for: [{}]", userId.toString());
+
+            VerifierProps verifierProps = config.getVerifier();
+            String resourcePath = verifierProps.getValidateTwoFactorCodeResourcePath();
+
+            Map<String, String> map = new HashMap<>();
+            map.put("userId", userId.toString());
+            map.put("code", code);
+
+            log.debug("[validateTwoFactorCode] URL [{}]", resourcePath);
+            restTemplate.getForEntity(resourcePath, Void.class, map);
+            return true;
+        } catch (HttpClientErrorException | HttpServerErrorException e) {
+            log.error(String.format("[validateTwoFactorCode] Error HTTP al pedir codigo 2 factores [%s]", e.getStatusCode()));
+            return false;
+        } catch (Exception e) {
+            log.error("[validateTwoFactorCode] Exception:",e);
+            throw (e);
+        }
+    }
 }

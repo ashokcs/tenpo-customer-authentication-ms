@@ -10,4 +10,5 @@ import lombok.Setter;
 public class VerifierProps {
 
     private String generateTwoFactorResourcePath;
+    private String validateTwoFactorCodeResourcePath;
 }

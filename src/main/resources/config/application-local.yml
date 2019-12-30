@@ -73,3 +73,4 @@ krealo:
         verifier:
             baseUrl: http://40.123.30.130:8080
             generateTwoFactorResourcePath: ${krealo.cloud.verifier.baseUrl}/${krealo.cloud.version}/account-management/accounts/{userId}/two-factor/generate-code
+            validateTwoFactorCodeResourcePath: ${krealo.cloud.verifier.baseUrl}/${krealo.cloud.version}/account-management/accounts/{userId}/two-factor/validate-code/{code}

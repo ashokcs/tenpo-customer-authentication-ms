@@ -13,4 +13,5 @@ public interface VerifierRestClient {
     @Retryable(value = { HttpClientErrorException.class, HttpServerErrorException.class }, maxAttempts = 3, backoff = @Backoff(delay = 5000))
     GenerateTwoFactorResponse generateTwoFactorCode(UUID userId, UUID codeId, Long expiration);
 
+    boolean validateTwoFactorCode(UUID userId, String code);
 }
