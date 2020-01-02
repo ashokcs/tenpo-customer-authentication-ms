@@ -7,7 +7,7 @@ import cl.tenpo.customerauthentication.dto.JwtDTO;
 import cl.tenpo.customerauthentication.exception.TenpoException;
 import cl.tenpo.customerauthentication.externalservice.azure.dto.TokenResponse;
 import cl.tenpo.customerauthentication.externalservice.cards.CardRestClient;
-import cl.tenpo.customerauthentication.constants.NotificationsProperties;
+import cl.tenpo.customerauthentication.properties.NotificationMailProperties;
 import cl.tenpo.customerauthentication.constants.ErrorCode;
 import cl.tenpo.customerauthentication.database.repository.CustomerTransactionContextRespository;
 import cl.tenpo.customerauthentication.externalservice.notification.NotificationRestClient;
@@ -22,7 +22,6 @@ import cl.tenpo.customerauthentication.model.ChallengeResult;
 import cl.tenpo.customerauthentication.model.ChallengeType;
 import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
 import cl.tenpo.customerauthentication.model.NewCustomerChallenge;
-import cl.tenpo.customerauthentication.properties.VerifierProps;
 import cl.tenpo.customerauthentication.service.Customer2faService;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
 import cl.tenpo.customerauthentication.util.JwtUtil;
@@ -62,7 +61,7 @@ public class Customer2faServiceImpl implements Customer2faService {
     private NotificationRestClient notificationRestClient;
 
     @Autowired
-    private NotificationsProperties notificationsProperties;
+    private NotificationMailProperties notificationMailProperties;
 
     @Autowired
     private VerifierRestClient verifierRestClient;
@@ -221,11 +220,11 @@ public class Customer2faServiceImpl implements Customer2faService {
             switch (newCustomerChallenge.getChallengeType()) {
                 case OTP_MAIL: {
                     EmailDto emailDto = EmailDto.builder()
-                            .from(notificationsProperties.getTwoFactorMailFrom())
+                            .from(notificationMailProperties.getTwoFactorMailFrom())
                             .to(userResponse.getEmail())
                             .referenceId(newCustomerChallenge.getChallengeId().toString())
-                            .subject(notificationsProperties.getTwoFactorMailSubject())
-                            .template(notificationsProperties.getTwoFactorMailTemplate())
+                            .subject(notificationMailProperties.getTwoFactorMailSubject())
+                            .template(notificationMailProperties.getTwoFactorMailTemplate())
                             .params(buildTwoFactorMailParam(
                                     userResponse.getFirstName(),
                                     newCustomerChallenge.getCode()))
