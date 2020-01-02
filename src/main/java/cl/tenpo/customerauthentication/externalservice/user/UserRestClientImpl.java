@@ -11,10 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.IOException;
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -22,7 +19,6 @@ import java.util.UUID;
 
 @Component
 @Slf4j
-@ConditionalOnProperty(name = "krealo.cloud.users.implement", havingValue = "real")
 public class UserRestClientImpl implements UserRestClient {
 
     private static final String PROVIDER = "AZURE_AD";
@@ -35,7 +31,7 @@ public class UserRestClientImpl implements UserRestClient {
     private RestTemplate restTemplate;
 
     @Override
-    public Optional<UserResponse> getUser(UUID userId) throws IOException {
+    public Optional<UserResponse> getUser(UUID userId) {
         try {
             log.info("[getUser] get user by Id: [{}]", userId.toString());
             Map<String, String> map = new HashMap<>();
@@ -51,15 +47,14 @@ public class UserRestClientImpl implements UserRestClient {
             return Optional.of(userResponseDto.getUser());
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             log.error("[getUser] User not found ",e);
-            throw (e);
         }catch (Exception e){
             log.error("[getUser] Exception:",e);
-            throw (e);
         }
+        return Optional.empty();
     }
 
     @Override
-    public Optional<UserResponse> getUserByProvider(UUID providerId) throws IOException {
+    public Optional<UserResponse> getUserByProvider(UUID providerId) {
         try {
 
             Map<String, String> map = new HashMap<>();
@@ -76,10 +71,9 @@ public class UserRestClientImpl implements UserRestClient {
             return Optional.of(userResponseDto.getUser());
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             log.error("[getUserByProvider] User not found ",e);
-            throw (e);
         }catch (Exception e){
             log.error("[getUserByProvider] Exception:",e);
-            throw (e);
         }
+        return Optional.empty();
     }
 }

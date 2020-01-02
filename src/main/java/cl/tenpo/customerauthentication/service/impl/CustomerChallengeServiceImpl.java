@@ -174,6 +174,36 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
         return customerChallengeEntityList.stream().map(e -> convertToDto(e)).collect(Collectors.toList());
     }
 
+    @Override
+    public Optional<CustomerTransactionContextDTO> updateTransactionContextStatus(UUID id, CustomerTransactionStatus status) {
+        log.info("[updateTransactionContextStatus] IN Id[{}] status[{}]", id, status);
+        Optional<CustomerTransactionContextEntity> customerTransactionContextEntity = customerTransactionContextRespository.findById(id);
+        if(customerTransactionContextEntity.isPresent()) {
+            customerTransactionContextEntity.get().setStatus(status);
+            CustomerTransactionContextEntity customerTx = customerTransactionContextRespository.save(customerTransactionContextEntity.get());
+            log.info("[updateTransactionContextStatus] OUT OK");
+            return Optional.of(convertToDto(customerTx));
+        }
+        else {
+            log.info("[updateTransactionContextStatus] OUT NOT FOUND");
+            return Optional.empty();
+        }
+
+    }
+
+    @Override
+    public Optional<CustomerTransactionContextDTO> addTransactionContextAttempt(UUID id) {
+        log.info("[CustomerTransactionContextDTO] IN Id [{}]", id);
+        Optional<CustomerTransactionContextEntity> customerTransactionContextEntity = customerTransactionContextRespository.findById(id);
+        if(customerTransactionContextEntity.isPresent()) {
+            customerTransactionContextEntity.get().setAttempts(customerTransactionContextEntity.get().getAttempts()+1);
+            CustomerTransactionContextEntity customerTx = customerTransactionContextRespository.save(customerTransactionContextEntity.get());
+            log.info("[CustomerTransactionContextDTO] OUT OK");
+            return Optional.of(convertToDto(customerTx));
+        }
+        return Optional.empty();
+    }
+
     private CustomerTransactionContextEntity convertToEntity(CustomerTransactionContextDTO value) throws ParseException {
         CustomerTransactionContextEntity post = modelMapper.map(value, CustomerTransactionContextEntity.class);
         return post;

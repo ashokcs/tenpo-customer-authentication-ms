@@ -17,9 +17,10 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.UUID;
 
+import static cl.tenpo.customerauthentication.constants.ErrorCode.INVALID_PAN;
+
 @Component
 @Slf4j
-@ConditionalOnProperty(name = "krealo.cloud.cards.implement", havingValue = "real")
 public class CardRestClientImpl implements CardRestClient{
 
     @Autowired
@@ -29,7 +30,7 @@ public class CardRestClientImpl implements CardRestClient{
     private RestTemplate restTemplate;
 
     @Override
-    public void checkIfCardBelongsToUser(UUID userId, String truncatedPan) throws TenpoException{
+    public void checkIfCardBelongsToUser(UUID userId, String truncatedPan) {
         try{
             log.info("[checkIfCardBelongsToUser] IN {}{}{}",userId,truncatedPan,CheckCardBelongsRequest
                     .builder()
@@ -43,16 +44,13 @@ public class CardRestClientImpl implements CardRestClient{
                             .pan(truncatedPan)
                             .userUuid(userId)
                             .build(), initHeader()), Void.class);
-        } catch (HttpClientErrorException e) {
+
+        } catch (HttpClientErrorException | HttpServerErrorException e) {
             log.error("[checkIfCardBelongsToUser] User not found ",e);
-            throw new TenpoException(HttpStatus.NOT_FOUND,"1411","El PAN no corresponde al cliente");
-        }catch (HttpServerErrorException e){
-            log.error("[checkIfCardBelongsToUser] User not found ",e);
-            throw new TenpoException(HttpStatus.NOT_FOUND,"1411","El PAN no corresponde al cliente");
-        }
-        catch (Exception e){
+            throw new TenpoException(HttpStatus.NOT_FOUND,INVALID_PAN,"El PAN no corresponde al cliente");
+        } catch (Exception e) {
             log.error("[checkIfCardBelongsToUser] Exception:",e);
-            throw new TenpoException(HttpStatus.NOT_FOUND,"1411","El PAN no corresponde al cliente");
+            throw new TenpoException(HttpStatus.NOT_FOUND,INVALID_PAN,"El PAN no corresponde al cliente");
         }
     }
 

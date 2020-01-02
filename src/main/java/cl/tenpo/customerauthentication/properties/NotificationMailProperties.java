@@ -1,4 +1,4 @@
-package cl.tenpo.customerauthentication.constants;
+package cl.tenpo.customerauthentication.properties;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 @Setter
 @Configuration
 @ConfigurationProperties(prefix = "constants.notifications")
-public class NotificationsProperties {
+public class NotificationMailProperties {
     private String twoFactorMailFrom;
     private String twoFactorMailSubject;
     private String twoFactorMailTemplate;

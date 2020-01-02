@@ -12,10 +12,10 @@ import java.util.UUID;
 public interface UserRestClient {
 
     @Retryable(value = {HttpServerErrorException.class }, maxAttempts = 3, backoff = @Backoff(delay = 5000))
-    Optional<UserResponse> getUser(UUID userId) throws IOException;
+    Optional<UserResponse> getUser(UUID userId);
 
     @Retryable(value = {HttpServerErrorException.class }, maxAttempts = 3, backoff = @Backoff(delay = 5000))
-    Optional<UserResponse> getUserByProvider(UUID providerId) throws IOException;
+    Optional<UserResponse> getUserByProvider(UUID providerId);
 
 
 }

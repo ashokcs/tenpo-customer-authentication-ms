@@ -31,7 +31,7 @@ public class CustomerTransactionContextEntity {
     private CustomerTransactionStatus status;
     private LocalDateTime created;
     private LocalDateTime updated;
-
+    private Integer attempts;
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "customerTransaction")
     private List<CustomerChallengeEntity> challenge;
 

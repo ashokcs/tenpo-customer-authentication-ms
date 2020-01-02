@@ -29,5 +29,6 @@ public class CustomerTransactionContextDTO {
     private CustomerTransactionStatus status;
     private LocalDateTime created;
     private LocalDateTime updated;
+    private Integer attempts;
     //private List<CustomerChallengeDTO> challenge;
 }

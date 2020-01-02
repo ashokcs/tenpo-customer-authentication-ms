@@ -2,11 +2,12 @@ package cl.tenpo.customerauthentication.service.impl;
 
 import cl.tenpo.customerauthentication.api.dto.*;
 import cl.tenpo.customerauthentication.component.AzureClient;
+import cl.tenpo.customerauthentication.dto.CustomerTransactionContextDTO;
 import cl.tenpo.customerauthentication.dto.JwtDTO;
 import cl.tenpo.customerauthentication.exception.TenpoException;
 import cl.tenpo.customerauthentication.externalservice.azure.dto.TokenResponse;
 import cl.tenpo.customerauthentication.externalservice.cards.CardRestClient;
-import cl.tenpo.customerauthentication.constants.NotificationsProperties;
+import cl.tenpo.customerauthentication.properties.NotificationMailProperties;
 import cl.tenpo.customerauthentication.constants.ErrorCode;
 import cl.tenpo.customerauthentication.database.repository.CustomerTransactionContextRespository;
 import cl.tenpo.customerauthentication.externalservice.notification.NotificationRestClient;
@@ -16,9 +17,11 @@ import cl.tenpo.customerauthentication.externalservice.notification.dto.TwoFacto
 import cl.tenpo.customerauthentication.externalservice.user.UserRestClient;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserResponse;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserStateType;
+import cl.tenpo.customerauthentication.externalservice.verifier.VerifierRestClient;
+import cl.tenpo.customerauthentication.model.ChallengeResult;
 import cl.tenpo.customerauthentication.model.ChallengeType;
+import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
 import cl.tenpo.customerauthentication.model.NewCustomerChallenge;
-import cl.tenpo.customerauthentication.properties.VerifierProps;
 import cl.tenpo.customerauthentication.service.Customer2faService;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
 import cl.tenpo.customerauthentication.util.JwtUtil;
@@ -31,6 +34,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static cl.tenpo.customerauthentication.constants.ErrorCode.*;
 import static cl.tenpo.customerauthentication.externalservice.notification.dto.MessageType.PUSH_NOTIFICATION;
 import static cl.tenpo.customerauthentication.externalservice.notification.dto.MessageType.SMS;
 
@@ -46,6 +50,7 @@ public class Customer2faServiceImpl implements Customer2faService {
 
     @Autowired
     private CardRestClient cardRestClient;
+
     @Autowired
     private CustomerChallengeService customerChallengeService;
 
@@ -56,11 +61,16 @@ public class Customer2faServiceImpl implements Customer2faService {
     private NotificationRestClient notificationRestClient;
 
     @Autowired
-    private NotificationsProperties notificationsProperties;
+    private NotificationMailProperties notificationMailProperties;
+
+    @Autowired
+    private VerifierRestClient verifierRestClient;
+
 
     @Override
     public TokenResponse login(CustomerLoginRequest request) {
         TokenResponse tokenResponse;
+        Optional<UserResponse> userResponseDto;
         try {
             //Try Login in AZ AD
             log.info("[login] Try to login into azure ad");
@@ -68,25 +78,25 @@ public class Customer2faServiceImpl implements Customer2faService {
             log.info("[login] Login succes");
             JwtDTO jwtDTO = JwtUtil.parseJWT(tokenResponse.getAccessToken());
             log.info("[login] Token Parsed");
-            Optional<UserResponse> userResponseDto = userRestClient.getUserByProvider(jwtDTO.getOid());
+            userResponseDto = userRestClient.getUserByProvider(jwtDTO.getOid());
             log.info("[login] Find User by provider");
             // Verificacion de usuario
             if(userResponseDto.isPresent()) {
                if(!userResponseDto.get().getState().equals(UserStateType.ACTIVE)) {
                    log.error("[login] Cliente no activo");
-                   throw new TenpoException(HttpStatus.NOT_FOUND,"1150","El cliente no existe o está bloqueado");
+                   throw new TenpoException(HttpStatus.NOT_FOUND, USER_NOT_FOUND_OR_LOCKED, "El cliente no existe o está bloqueado");
                }
-               // Si la verificac
-                log.error("[login] Tarjeta verifica tarjeta");
-               cardRestClient.checkIfCardBelongsToUser(userResponseDto.get().getId(),request.getPan());
             }else {
                 log.error("[login] Usuario no existe");
-                throw new TenpoException(HttpStatus.NOT_FOUND,"1150","El cliente no existe o está bloqueado");
+                throw new TenpoException(HttpStatus.NOT_FOUND, USER_NOT_FOUND_OR_LOCKED, "El cliente no existe o está bloqueado");
             }
         } catch (Exception e){
             log.error("[login] Error login on Azure AD");
-            throw new TenpoException(HttpStatus.NOT_FOUND,"1150","El cliente no existe o está bloqueado");
+            throw new TenpoException(HttpStatus.NOT_FOUND, USER_NOT_FOUND_OR_LOCKED, "El cliente no existe o está bloqueado");
         }
+        // Si la verificac
+        log.info("[login] Tarjeta verifica tarjeta");
+        cardRestClient.checkIfCardBelongsToUser(userResponseDto.get().getId(),request.getPan());
         log.info("[login] User+Pan OK");
         return tokenResponse;
     }
@@ -97,7 +107,7 @@ public class Customer2faServiceImpl implements Customer2faService {
 
         // Validar que el usuario no esta bloqueado
         UserResponse userResponse = getAndValidateUser(userId);
-        log.info(String.format("[createChallenge] Usuario validado: %s", userResponse.getDocumentNumber()));
+        log.info("[createChallenge] Usuario validado: [{}]", userResponse.getTributaryIdentifier());
 
         // Crear el challenge
         NewCustomerChallenge newCustomerChallenge = customerChallengeService.createRequestedChallenge(userId, request);
@@ -110,27 +120,78 @@ public class Customer2faServiceImpl implements Customer2faService {
 
     @Override
     public ValidateChallengeResponse validateChallenge(UUID userId, ValidateChallengeRequest request) {
+        //Verifica que exista un desafio con este context id
+        Optional<CustomerTransactionContextDTO> customerTransactionContextDTO = customerChallengeService.findByExternalId(request.getExternalId());
+        if(!customerTransactionContextDTO.isPresent()) {
+            log.error("[validateChallenge] No se encontró el external_id. Llame primero a POST");
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, EXTERNAL_ID_NOT_FOUND, "No se encontró el external_id. Llame primero a POST");
+        }
 
-        return null;
+        // Retorno cuando el desafio es rechazado
+        if(customerTransactionContextDTO.get().getStatus().equals(CustomerTransactionStatus.REJECTED)) {
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, TRANSACTION_CONTEXT_LOCKED, "Transaccion bloqueada por intentos");
+        }
+
+        // Verifica la cantidad de intentos y actualiza status de la trx
+        if(customerTransactionContextDTO.get().getAttempts()>4) {
+            customerChallengeService.updateTransactionContextStatus(customerTransactionContextDTO.get().getId(),CustomerTransactionStatus.REJECTED);
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, TRANSACTION_CONTEXT_LOCKED, "Transaccion bloqueada por intentos");
+        }
+
+        // Validar que el usuario no esta bloqueado
+        UserResponse userResponse = getAndValidateUser(userId);
+        log.info("[validateChallenge] Usuario validado: [{}]", userResponse.getTributaryIdentifier());
+        // Verifica el codigo.
+        boolean responceVeriverifier = verifierRestClient.validateTwoFactorCode(userId, request.getResponse());
+
+        if(responceVeriverifier) {
+            //Actualiza status a TRX authorizada
+            customerChallengeService.updateTransactionContextStatus(customerTransactionContextDTO.get().getExternalId(),CustomerTransactionStatus.AUTHORIZED);
+            return ValidateChallengeResponse.builder()
+                    .result(ChallengeResult.AUTH_EXITOSA)
+                    .externalId(customerTransactionContextDTO.get().getExternalId()).build();
+
+        } else {
+            //Aumenta numero de intentos y responde AUTH FAIL
+            customerChallengeService.addTransactionContextAttempt(customerTransactionContextDTO.get().getId());
+            return ValidateChallengeResponse.builder()
+                    .result(ChallengeResult.AUTH_FALLIDA)
+                    .externalId(customerTransactionContextDTO.get().getExternalId()).build();
+        }
     }
 
     @Override
     public AbortChallengeResponse abortResponse(UUID userId, AbortChallengeRequest request) {
-        return null;
+
+        Optional<CustomerTransactionContextDTO> customerTransactionContextDTO = customerChallengeService.findByExternalId(request.getExternalId());
+
+        if(!customerTransactionContextDTO.isPresent()){
+            log.error("[abortResponse] No se encontró el external_id. Llame primero a POST");
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, EXTERNAL_ID_NOT_FOUND, "No se encontró el external_id. Llame primero a POST");
+        }
+
+        // Validar que el usuario no esta bloqueado
+        UserResponse userResponse = getAndValidateUser(userId);
+        log.info("[abortResponse] Usuario validado: [{}]", userResponse.getTributaryIdentifier());
+
+        customerTransactionContextDTO = customerChallengeService.updateTransactionContextStatus(request.getExternalId(), CustomerTransactionStatus.CANCEL);
+
+       if(!customerTransactionContextDTO.isPresent()){
+            log.error("[abortResponse] No se encontró el external_id. Llame primero a POST");
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, EXTERNAL_ID_NOT_FOUND, "No se encontró el external_id. Llame primero a POST");
+       }
+
+       return AbortChallengeResponse.builder()
+               .externalId(customerTransactionContextDTO.get().getExternalId())
+               .result(customerTransactionContextDTO.get().getStatus())
+               .build();
     }
 
     @Override
     public List<String> listChallenge(UUID userId) {
-        Optional<UserResponse> userResponseDto;
-        try {
-            userResponseDto = userRestClient.getUser(userId);
-         }catch (Exception e){
-            log.error("[listChallenge] Error al verificar usuario");
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY,"500","Error desconocido a verificar ");
-         }
-        if(!userResponseDto.isPresent()|| !userResponseDto.get().getState().equals(UserStateType.ACTIVE)){
-            throw new TenpoException(HttpStatus.NOT_FOUND,"1150","El cliente no existe o está bloqueado");
-        }
+        // Validar que el usuario no esta bloqueado
+        UserResponse userResponse = getAndValidateUser(userId);
+        log.info("[createChallenge] Usuario validado: [{}]", userResponse.getTributaryIdentifier());
         return Stream.of(ChallengeType.values()).map(Enum::name).collect(Collectors.toList());
     }
 
@@ -139,14 +200,14 @@ public class Customer2faServiceImpl implements Customer2faService {
         try {
             requestUser = userRestClient.getUser(userId);
         } catch (Exception e) {
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.USER_NOT_FOUND_OR_LOCKED);
+            throw new TenpoException(HttpStatus.NOT_FOUND, USER_NOT_FOUND_OR_LOCKED, "El cliente no existe o está bloqueado");
         }
 
         if (!requestUser.isPresent()) {
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.USER_NOT_FOUND_OR_LOCKED);
+            throw new TenpoException(HttpStatus.NOT_FOUND, USER_NOT_FOUND_OR_LOCKED, "El cliente no existe o está bloqueado");
         }
         if (!requestUser.get().getState().equals(UserStateType.ACTIVE)) {
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.USER_NOT_FOUND_OR_LOCKED);
+            throw new TenpoException(HttpStatus.NOT_FOUND, USER_NOT_FOUND_OR_LOCKED, "El cliente no existe o está bloqueado");
         }
 
         return requestUser.get();
@@ -159,11 +220,11 @@ public class Customer2faServiceImpl implements Customer2faService {
             switch (newCustomerChallenge.getChallengeType()) {
                 case OTP_MAIL: {
                     EmailDto emailDto = EmailDto.builder()
-                            .from(notificationsProperties.getTwoFactorMailFrom())
+                            .from(notificationMailProperties.getTwoFactorMailFrom())
                             .to(userResponse.getEmail())
                             .referenceId(newCustomerChallenge.getChallengeId().toString())
-                            .subject(notificationsProperties.getTwoFactorMailSubject())
-                            .template(notificationsProperties.getTwoFactorMailTemplate())
+                            .subject(notificationMailProperties.getTwoFactorMailSubject())
+                            .template(notificationMailProperties.getTwoFactorMailTemplate())
                             .params(buildTwoFactorMailParam(
                                     userResponse.getFirstName(),
                                     newCustomerChallenge.getCode()))
