@@ -41,13 +41,6 @@ krealo:
   security:
     disabledFor:
       - /**
-  cloud:
-    users:
-      implement: real
-    notifications:
-      implement: real
-    cards:
-      implement: real
   external:
     api:
       freshdesk:

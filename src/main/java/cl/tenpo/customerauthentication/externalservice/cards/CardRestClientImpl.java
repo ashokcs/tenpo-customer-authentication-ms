@@ -21,7 +21,6 @@ import static cl.tenpo.customerauthentication.constants.ErrorCode.INVALID_PAN;
 
 @Component
 @Slf4j
-@ConditionalOnProperty(name = "krealo.cloud.cards.implement", havingValue = "real")
 public class CardRestClientImpl implements CardRestClient{
 
     @Autowired

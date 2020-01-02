@@ -22,7 +22,6 @@ import org.springframework.web.client.RestTemplate;
 @Component
 @AllArgsConstructor
 @Slf4j
-@ConditionalOnProperty(name = "krealo.cloud.notifications.implement", havingValue = "real")
 public class NotificationRestClientImpl implements NotificationRestClient {
 
     @Autowired

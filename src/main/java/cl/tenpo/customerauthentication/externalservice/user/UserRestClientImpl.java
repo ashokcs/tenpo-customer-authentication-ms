@@ -19,7 +19,6 @@ import java.util.UUID;
 
 @Component
 @Slf4j
-@ConditionalOnProperty(name = "krealo.cloud.users.implement", havingValue = "real")
 public class UserRestClientImpl implements UserRestClient {
 
     private static final String PROVIDER = "AZURE_AD";

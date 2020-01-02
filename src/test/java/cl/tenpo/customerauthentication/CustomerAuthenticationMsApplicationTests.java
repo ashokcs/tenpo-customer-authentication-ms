@@ -17,9 +17,7 @@ import java.util.UUID;
 		"spring.datasource.password = sa",
 		"spring.jpa.hibernate.ddl-auto = create-drop",
 		"spring.flyway.enabled=false",
-		"kafka.listen.auto.start=false",
-		"krealo.cloud.users.implement=mock",
-		"krealo.cloud.cards.implement=mock"
+		"kafka.listen.auto.start=false"
 })
 public class CustomerAuthenticationMsApplicationTests {
 
