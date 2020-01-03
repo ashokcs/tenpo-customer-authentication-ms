@@ -35,7 +35,7 @@ constants:
   notifications:
     twoFactorMailFrom: 'authentication@tenpo.cl'
     twoFactorMailSubject: 'Código verificación'
-    twoFactorMailTemplate: 'd1457408-3e06-45fd-bc03-a953231f1496'
+    twoFactorMailTemplate: '4c8f1b4c-02d0-4048-a50b-c39f5050ae3a'
 
 krealo:
   security:
