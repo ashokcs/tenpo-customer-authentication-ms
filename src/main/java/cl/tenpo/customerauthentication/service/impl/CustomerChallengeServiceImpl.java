@@ -123,6 +123,7 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
             .updated(LocalDateTime.now())
             .challengeType(createChallengeRequest.getChallengeType())
             .status(ChallengeStatus.OPEN)
+            .callbackUri(createChallengeRequest.getCallbackUri())
             .build()
         );
         log.info(String.format("[createRequestedChallenge] Challenge nuevo con id:%s", customerChallengeDTO.get().getId()));
