@@ -65,6 +65,7 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
                     .txPlaceName(createChallengeRequest.getTransactionContext().getTxPlaceName())
                     .txCountryCode(createChallengeRequest.getTransactionContext().getTxCountryCode())
                     .status(CustomerTransactionStatus.PENDING)
+                    .attempts(0)
                     .created(LocalDateTime.now(ZoneId.of("UTC")))
                     .updated(LocalDateTime.now(ZoneId.of("UTC")))
                     .build());
