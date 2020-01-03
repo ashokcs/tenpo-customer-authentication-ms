@@ -27,11 +27,16 @@ public class CustomerTransactionContextEntity {
     private Integer txCountryCode;
     private String txPlaceName;
     private String txOther;
+
     @Enumerated(EnumType.STRING)
     private CustomerTransactionStatus status;
+
     private LocalDateTime created;
     private LocalDateTime updated;
+
+    @Column(columnDefinition = "integer default 0")
     private Integer attempts;
+
     @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "customerTransaction")
     private List<CustomerChallengeEntity> challenge;
 
