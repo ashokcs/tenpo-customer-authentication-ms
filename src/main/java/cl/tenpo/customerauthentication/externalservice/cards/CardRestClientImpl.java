@@ -47,10 +47,10 @@ public class CardRestClientImpl implements CardRestClient{
 
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             log.error("[checkIfCardBelongsToUser] User not found ",e);
-            throw new TenpoException(HttpStatus.NOT_FOUND,INVALID_PAN,"El PAN no corresponde al cliente");
+            throw new TenpoException(HttpStatus.NOT_FOUND, INVALID_PAN);
         } catch (Exception e) {
             log.error("[checkIfCardBelongsToUser] Exception:",e);
-            throw new TenpoException(HttpStatus.NOT_FOUND,INVALID_PAN,"El PAN no corresponde al cliente");
+            throw new TenpoException(HttpStatus.NOT_FOUND, INVALID_PAN);
         }
     }
 

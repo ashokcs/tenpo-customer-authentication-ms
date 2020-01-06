@@ -4,6 +4,7 @@ package cl.tenpo.customerauthentication.unit.service;
 import cl.tenpo.customerauthentication.CustomerAuthenticationMsApplicationTests;
 import cl.tenpo.customerauthentication.api.dto.CustomerLoginRequest;
 import cl.tenpo.customerauthentication.component.AzureClient;
+import cl.tenpo.customerauthentication.constants.ErrorCode;
 import cl.tenpo.customerauthentication.exception.TenpoException;
 import cl.tenpo.customerauthentication.externalservice.azure.dto.TokenResponse;
 import cl.tenpo.customerauthentication.externalservice.cards.CardRestClient;
@@ -22,11 +23,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.HttpClientErrorException;
 
+import javax.swing.tree.ExpandVetoException;
 import java.util.Optional;
 import java.util.UUID;
 
-import static cl.tenpo.customerauthentication.constants.ErrorCode.INVALID_PAN;
-import static cl.tenpo.customerauthentication.constants.ErrorCode.USER_NOT_FOUND_OR_LOCKED;
+import static cl.tenpo.customerauthentication.constants.ErrorCode.*;
 import static org.mockito.Mockito.*;
 
 
@@ -47,6 +48,108 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
     private CardRestClient cardRestClient;
 
     @Test(expected = TenpoException.class)
+    public void login_WhenEmailNull_ThenThrowsException() {
+        CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
+                .email(null)
+                .pan("123456XXXXXX1234")
+                .password("1234")
+                .build();
+
+        try {
+            customer2faService.login(customerLoginRequest);
+        } catch (TenpoException te) {
+            Assert.assertEquals("Debe tirar status 400", HttpStatus.BAD_REQUEST, te.getCode());
+            Assert.assertEquals("Debe tirar error 1400", ErrorCode.MISSING_PARAMETERS, te.getErrorCode());
+            throw te;
+        }
+    }
+
+    @Test(expected = TenpoException.class)
+    public void login_WhenEmailEmpty_ThenThrowsException() {
+        CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
+                .email("")
+                .pan("123456XXXXXX1234")
+                .password("1234")
+                .build();
+
+        try {
+            customer2faService.login(customerLoginRequest);
+        } catch (TenpoException te) {
+            Assert.assertEquals("Debe tirar status 400", HttpStatus.BAD_REQUEST, te.getCode());
+            Assert.assertEquals("Debe tirar error 1400", ErrorCode.MISSING_PARAMETERS, te.getErrorCode());
+            throw te;
+        }
+    }
+
+    @Test(expected = TenpoException.class)
+    public void login_WhenPanNull_ThenThrowsException() {
+        CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
+                .email("hola@mail.com")
+                .pan(null)
+                .password("1234")
+                .build();
+
+        try {
+            customer2faService.login(customerLoginRequest);
+        } catch (TenpoException te) {
+            Assert.assertEquals("Debe tirar status 400", HttpStatus.BAD_REQUEST, te.getCode());
+            Assert.assertEquals("Debe tirar error 1400", ErrorCode.MISSING_PARAMETERS, te.getErrorCode());
+            throw te;
+        }
+    }
+
+    @Test(expected = TenpoException.class)
+    public void login_WhenPanEmpty_ThenThrowsException() {
+        CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
+                .email("hola@mail.com")
+                .pan("")
+                .password("1234")
+                .build();
+
+        try {
+            customer2faService.login(customerLoginRequest);
+        } catch (TenpoException te) {
+            Assert.assertEquals("Debe tirar status 400", HttpStatus.BAD_REQUEST, te.getCode());
+            Assert.assertEquals("Debe tirar error 1400", ErrorCode.MISSING_PARAMETERS, te.getErrorCode());
+            throw te;
+        }
+    }
+
+    @Test(expected = TenpoException.class)
+    public void login_WhenPasswordNull_ThenThrowsException() {
+        CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
+                .email("hola@mail.com")
+                .pan("123456XXXXXX1234")
+                .password(null)
+                .build();
+
+        try {
+            customer2faService.login(customerLoginRequest);
+        } catch (TenpoException te) {
+            Assert.assertEquals("Debe tirar status 400", HttpStatus.BAD_REQUEST, te.getCode());
+            Assert.assertEquals("Debe tirar error 1400", ErrorCode.MISSING_PARAMETERS, te.getErrorCode());
+            throw te;
+        }
+    }
+
+    @Test(expected = TenpoException.class)
+    public void login_WhenPasswordEmpty_ThenThrowsException() {
+        CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
+                .email("hola@mail.com")
+                .pan("123456XXXXXX1234")
+                .password("")
+                .build();
+
+        try {
+            customer2faService.login(customerLoginRequest);
+        } catch (TenpoException te) {
+            Assert.assertEquals("Debe tirar status 400", HttpStatus.BAD_REQUEST, te.getCode());
+            Assert.assertEquals("Debe tirar error 1400", ErrorCode.MISSING_PARAMETERS, te.getErrorCode());
+            throw te;
+        }
+    }
+
+    @Test(expected = TenpoException.class)
     public void loginErrorAzureLogin() {
         when(azureClient.loginUser(Mockito.anyString(),Mockito.anyString()))
                 .thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND));
@@ -61,8 +164,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
 
         }catch (TenpoException e){
             Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.NOT_FOUND, e.getCode());
-            Assert.assertEquals("Codigo debe ser igual", USER_NOT_FOUND_OR_LOCKED, e.getErrorCode());
-            Assert.assertEquals("Msj debe ser igual","El cliente no existe o está bloqueado",e.getMessage());
+            Assert.assertEquals("Codigo debe ser igual", INVALID_CREDENTIALS, e.getErrorCode());
             throw e;
         }
     }
@@ -92,8 +194,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
 
         }catch (TenpoException e){
             Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.NOT_FOUND, e.getCode());
-            Assert.assertEquals("Codigo debe ser igual", USER_NOT_FOUND_OR_LOCKED, e.getErrorCode());
-            Assert.assertEquals("Msj debe ser igual","El cliente no existe o está bloqueado",e.getMessage());
+            Assert.assertEquals("Codigo debe ser igual", INVALID_CREDENTIALS, e.getErrorCode());
             throw e;
         }
     }
@@ -123,8 +224,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
 
         }catch (TenpoException e){
             Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.NOT_FOUND, e.getCode());
-            Assert.assertEquals("Codigo debe ser igual", USER_NOT_FOUND_OR_LOCKED, e.getErrorCode());
-            Assert.assertEquals("Msj debe ser igual","El cliente no existe o está bloqueado",e.getMessage());
+            Assert.assertEquals("Codigo debe ser igual", INVALID_CREDENTIALS, e.getErrorCode());
             throw e;
         }
     }
@@ -159,7 +259,6 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
         }catch (TenpoException e){
             Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.NOT_FOUND, e.getCode());
             Assert.assertEquals("Codigo debe ser igual", INVALID_PAN, e.getErrorCode());
-            Assert.assertEquals("Msj debe ser igual","El PAN no corresponde al cliente",e.getMessage());
             throw e;
         }
     }

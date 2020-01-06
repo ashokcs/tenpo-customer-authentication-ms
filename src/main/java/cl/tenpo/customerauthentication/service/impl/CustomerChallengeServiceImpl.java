@@ -14,6 +14,7 @@ import cl.tenpo.customerauthentication.externalservice.verifier.dto.GenerateTwoF
 import cl.tenpo.customerauthentication.model.ChallengeStatus;
 import cl.tenpo.customerauthentication.model.NewCustomerChallenge;
 import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
+import cl.tenpo.customerauthentication.properties.CustomerTransactionContextProperties;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -28,6 +29,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import static cl.tenpo.customerauthentication.constants.ErrorCode.*;
+import static cl.tenpo.customerauthentication.constants.ErrorCode.TRANSACTION_CONTEXT_LOCKED;
 
 @Service
 @Slf4j
