@@ -15,6 +15,7 @@ import cl.tenpo.customerauthentication.model.ChallengeStatus;
 import cl.tenpo.customerauthentication.model.NewCustomerChallenge;
 import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
 import cl.tenpo.customerauthentication.properties.CustomerTransactionContextProperties;
+import cl.tenpo.customerauthentication.service.Customer2faService;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -49,6 +50,9 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
     @Autowired
     private VerifierRestClient verifierRestClient;
 
+    @Autowired
+    private Customer2faService customer2faService;
+
     @Override
     public NewCustomerChallenge createRequestedChallenge(UUID userId, CreateChallengeRequest createChallengeRequest) {
         GenerateTwoFactorResponse twoFactorResponse;
@@ -73,14 +77,8 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
                     .created(LocalDateTime.now(ZoneId.of("UTC")))
                     .updated(LocalDateTime.now(ZoneId.of("UTC")))
                     .build());
-        }
-
-        LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
-
-        // Revisar si esta transaccion aun no ha expirado
-        if (now.isAfter(customerTrx.get().getCreated().plusMinutes(10))) {
-            log.info("[createRequestedChallenge] Trx context ya ha expirado.");
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.TRANSACTION_CONTEXT_EXPIRED);
+        } else {
+            customer2faService.validateTransactionContextStatus(customerTrx.get(), true);
         }
 
         List<CustomerChallengeEntity> challengeList = customerChallengeRepository.findByTransactionContextId(customerTrx.get().getId());

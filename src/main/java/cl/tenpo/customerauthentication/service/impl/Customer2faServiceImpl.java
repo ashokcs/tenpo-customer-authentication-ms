@@ -137,13 +137,15 @@ public class Customer2faServiceImpl implements Customer2faService {
     public ValidateChallengeResponse validateChallenge(UUID userId, ValidateChallengeRequest request) {
         log.info(String.format("[validateChallenge] Validate challenge request for user %s [%s]", userId, request));
 
-        //Verifica que exista un desafio valido con este context id
+        //Verifica que exista ese context id
         Optional<CustomerTransactionContextDTO> customerTransactionContextDTO = customerChallengeService.findByExternalId(request.getExternalId());
         if (!customerTransactionContextDTO.isPresent()) {
             log.error("[validateChallenge] No se encontró el external_id. Llame primero a POST");
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, EXTERNAL_ID_NOT_FOUND, "No se encontró el external_id. Llame primero a POST");
+            throw new TenpoException(HttpStatus.NOT_FOUND, EXTERNAL_ID_NOT_FOUND);
         }
-        validateTransactionContextStatus(customerTransactionContextDTO.get());
+
+        // Valida el estado de la trx
+        validateTransactionContextStatus(customerTransactionContextDTO.get(), true);
         log.info("[validateChallenge] Transaccion validada: [{}]", customerTransactionContextDTO.get().getId());
 
         // Validar que el usuario no esta bloqueado
@@ -173,24 +175,27 @@ public class Customer2faServiceImpl implements Customer2faService {
     public AbortChallengeResponse abortResponse(UUID userId, AbortChallengeRequest request) {
 
         Optional<CustomerTransactionContextDTO> customerTransactionContextDTO = customerChallengeService.findByExternalId(request.getExternalId());
-
         if(!customerTransactionContextDTO.isPresent()){
             log.error("[abortResponse] No se encontró el external_id. Llame primero a POST");
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, EXTERNAL_ID_NOT_FOUND, "No se encontró el external_id. Llame primero a POST");
+            throw new TenpoException(HttpStatus.NOT_FOUND, EXTERNAL_ID_NOT_FOUND);
         }
+
+        // Valida el estado de la trx, excepto si ya esta cancelada
+        validateTransactionContextStatus(customerTransactionContextDTO.get(), false);
+        log.info("[abortResponse] Transaccion validada: [{}]", customerTransactionContextDTO.get().getId());
 
         // Validar que el usuario no esta bloqueado
         UserResponse userResponse = getAndValidateUser(userId);
         log.info("[abortResponse] Usuario validado: [{}]", userResponse.getTributaryIdentifier());
 
+        // Marcar estado como cancelado
         customerTransactionContextDTO = customerChallengeService.updateTransactionContextStatus(request.getExternalId(), CustomerTransactionStatus.CANCEL);
+        if(!customerTransactionContextDTO.isPresent()){
+            log.error("[abortResponse] Error al actualizar el estado");
+            throw new TenpoException(HttpStatus.INTERNAL_SERVER_ERROR, INTERNAL_ERROR);
+        }
 
-       if(!customerTransactionContextDTO.isPresent()){
-            log.error("[abortResponse] No se encontró el external_id. Llame primero a POST");
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, EXTERNAL_ID_NOT_FOUND, "No se encontró el external_id. Llame primero a POST");
-       }
-
-       return AbortChallengeResponse.builder()
+        return AbortChallengeResponse.builder()
                .externalId(customerTransactionContextDTO.get().getExternalId())
                .result(customerTransactionContextDTO.get().getStatus())
                .build();
@@ -209,19 +214,18 @@ public class Customer2faServiceImpl implements Customer2faService {
         try {
             requestUser = userRestClient.getUser(userId);
         } catch (Exception e) {
-            throw new TenpoException(HttpStatus.NOT_FOUND, USER_NOT_FOUND_OR_LOCKED, "El cliente no existe o está bloqueado");
+            throw new TenpoException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN);
         }
 
         if (!requestUser.isPresent()) {
-            throw new TenpoException(HttpStatus.NOT_FOUND, USER_NOT_FOUND_OR_LOCKED, "El cliente no existe o está bloqueado");
+            throw new TenpoException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN);
         }
         if (!requestUser.get().getState().equals(UserStateType.ACTIVE)) {
-            throw new TenpoException(HttpStatus.NOT_FOUND, USER_NOT_FOUND_OR_LOCKED, "El cliente no existe o está bloqueado");
+            throw new TenpoException(HttpStatus.UNAUTHORIZED, INVALID_TOKEN);
         }
 
         return requestUser.get();
     }
-
 
     private void sendChallenge(NewCustomerChallenge newCustomerChallenge, UserResponse userResponse) {
 
@@ -267,7 +271,7 @@ public class Customer2faServiceImpl implements Customer2faService {
                 }
             }
         } catch (Exception e) {
-            throw new TenpoException(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.NOTIFICATION_ERROR);
+            log.error("[sendChallenge] Error al enviar notificacion");
         }
     }
 
@@ -278,38 +282,38 @@ public class Customer2faServiceImpl implements Customer2faService {
         return mailParam;
     }
 
-    private void validateTransactionContextStatus(CustomerTransactionContextDTO transactionContextDTO) {
+    public void validateTransactionContextStatus(CustomerTransactionContextDTO transactionContextDTO, boolean validateCanceled) {
 
         // Retorno cuando la trx ya fue autorizada previamente
         if (transactionContextDTO.getStatus().equals(CustomerTransactionStatus.AUTHORIZED)) {
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, TRANSACTION_CONTEXT_ALREADY_AUTHORIZED, "Transaccion ya fue authorizada previamente");
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, TRANSACTION_CONTEXT_CLOSED);
         }
 
         // Retorno cuando la trx ya fue cancelada
-        if (transactionContextDTO.getStatus().equals(CustomerTransactionStatus.CANCEL)) {
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, TRANSACTION_CONTEXT_CANCELED, "Transaccion ya fue cancelada");
+        if (transactionContextDTO.getStatus().equals(CustomerTransactionStatus.CANCEL) && validateCanceled) {
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, TRANSACTION_CONTEXT_CANCELED);
         }
 
         // Retorno cuando la trx ha expirado
         if (transactionContextDTO.getStatus().equals(CustomerTransactionStatus.EXPIRED)) {
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, TRANSACTION_CONTEXT_EXPIRED, "Transaccion ha expirado");
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, TRANSACTION_CONTEXT_EXPIRED);
         }
 
         // Verifica duracion de la trx y la expira si es necesario
         if (LocalDateTime.now(ZoneId.of("UTC")).isAfter(transactionContextDTO.getCreated().plusMinutes(transactionContextProperties.getExpirationTime()))) {
             customerChallengeService.updateTransactionContextStatus(transactionContextDTO.getId(), CustomerTransactionStatus.EXPIRED);
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, TRANSACTION_CONTEXT_EXPIRED, "Transaccion ha expirado");
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, TRANSACTION_CONTEXT_EXPIRED);
         }
 
         // Retorno cuando la trx fue rechazada por intentos
         if (transactionContextDTO.getStatus().equals(CustomerTransactionStatus.REJECTED)) {
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, TRANSACTION_CONTEXT_LOCKED, "Transaccion bloqueada por intentos");
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, BLOCKED_PASSWORD);
         }
 
         // Verifica la cantidad de intentos y actualiza status de la trx
         if (transactionContextDTO.getAttempts() > transactionContextProperties.getPasswordAttempts()) {
             customerChallengeService.updateTransactionContextStatus(transactionContextDTO.getId(), CustomerTransactionStatus.REJECTED);
-            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, TRANSACTION_CONTEXT_LOCKED, "Transaccion bloqueada por intentos");
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, BLOCKED_PASSWORD);
         }
     }
 
