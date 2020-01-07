@@ -3,6 +3,7 @@ package cl.tenpo.customerauthentication.unit.service;
 import cl.tenpo.customerauthentication.CustomerAuthenticationMsApplicationTests;
 import cl.tenpo.customerauthentication.api.dto.ValidateChallengeRequest;
 import cl.tenpo.customerauthentication.api.dto.ValidateChallengeResponse;
+import cl.tenpo.customerauthentication.constants.ErrorCode;
 import cl.tenpo.customerauthentication.dto.CustomerTransactionContextDTO;
 import cl.tenpo.customerauthentication.exception.TenpoException;
 import cl.tenpo.customerauthentication.externalservice.user.UserRestClient;
@@ -11,6 +12,7 @@ import cl.tenpo.customerauthentication.externalservice.user.dto.UserStateType;
 import cl.tenpo.customerauthentication.externalservice.verifier.VerifierRestClient;
 import cl.tenpo.customerauthentication.model.ChallengeResult;
 import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
+import cl.tenpo.customerauthentication.properties.CustomerTransactionContextProperties;
 import cl.tenpo.customerauthentication.service.Customer2faService;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
 import org.junit.Assert;
@@ -23,6 +25,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -45,8 +49,11 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     @MockBean
     private VerifierRestClient verifierRestClient;
 
+    @Autowired
+    private CustomerTransactionContextProperties transactionContextProperties;
+
     @Test(expected = TenpoException.class)
-    public void validateChallengeExtenalNotFound(){
+    public void validateChallengeExternalNotFound(){
         when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
                 .thenReturn(Optional.empty());
         try{
@@ -54,39 +61,150 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
             customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
             Assert.fail("Can't be here");
         }catch (TenpoException e){
-            Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.UNPROCESSABLE_ENTITY, e.getCode());
+            Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.NOT_FOUND, e.getCode());
             Assert.assertEquals("Codigo debe ser igual", EXTERNAL_ID_NOT_FOUND, e.getErrorCode());
-            Assert.assertEquals("Msj debe ser igual","No se encontró el external_id. Llame primero a POST",e.getMessage());
             throw e;
         }
     }
 
     @Test(expected = TenpoException.class)
-    public void validateChallengeTrxContextRejected() {
+    public void validateChallengeTrxContextAlreadyAuthorized() {
 
-        CustomerTransactionContextDTO customerTransactionContextDTO = new CustomerTransactionContextDTO();
-        customerTransactionContextDTO.setStatus(CustomerTransactionStatus.REJECTED);
-        customerTransactionContextDTO.setAttempts(0);
-
+        CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
+        customerTransactionContextDTO.setStatus(CustomerTransactionStatus.AUTHORIZED);
         when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
-        UserResponse userResponse = new UserResponse();
-        userResponse.setId(UUID.randomUUID());
-        userResponse.setState(UserStateType.BLOCKED);
-
-        when(userRestClient.getUser(Mockito.any(UUID.class)))
-                .thenReturn(Optional.of(userResponse));
-
-        try{
+        try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
             validateChallengeRequest.setExternalId(UUID.randomUUID());
             customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
             Assert.fail("Can't be here");
-        }catch (TenpoException e){
+        } catch (TenpoException e) {
             Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.UNPROCESSABLE_ENTITY, e.getCode());
-            Assert.assertEquals("Codigo debe ser igual", TRANSACTION_CONTEXT_LOCKED, e.getErrorCode());
-            Assert.assertEquals("Msj debe ser igual","Transaccion bloqueada por intentos",e.getMessage());
+            Assert.assertEquals("Codigo debe ser 1202", TRANSACTION_CONTEXT_CLOSED, e.getErrorCode());
+            throw e;
+        }
+    }
+
+    @Test(expected = TenpoException.class)
+    public void validateChallengeTrxContextAlreadyCanceled() {
+
+        CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
+        customerTransactionContextDTO.setStatus(CustomerTransactionStatus.CANCEL);
+        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(customerTransactionContextDTO));
+
+        try {
+            ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
+            validateChallengeRequest.setExternalId(UUID.randomUUID());
+            customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
+            Assert.fail("Can't be here");
+        } catch (TenpoException e) {
+            Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.UNPROCESSABLE_ENTITY, e.getCode());
+            Assert.assertEquals("Codigo debe ser 1201", TRANSACTION_CONTEXT_CANCELED, e.getErrorCode());
+            throw e;
+        }
+    }
+
+    @Test(expected = TenpoException.class)
+    public void validateChallengeTrxContextAlreadyExpiredByStatus() {
+
+        CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
+        customerTransactionContextDTO.setStatus(CustomerTransactionStatus.EXPIRED);
+        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(customerTransactionContextDTO));
+
+        try {
+            ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
+            validateChallengeRequest.setExternalId(UUID.randomUUID());
+            customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
+            Assert.fail("Can't be here");
+        } catch (TenpoException e) {
+            Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.UNPROCESSABLE_ENTITY, e.getCode());
+            Assert.assertEquals("Codigo debe ser 1201", TRANSACTION_CONTEXT_EXPIRED, e.getErrorCode());
+            throw e;
+        }
+    }
+
+    @Test(expected = TenpoException.class)
+    public void validateChallengeTrxContextAlreadyExpiredByTime() {
+
+        CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
+        customerTransactionContextDTO.setCreated(LocalDateTime.now(ZoneId.of("UTC")).minusMinutes(transactionContextProperties.getExpirationTimeInMinutes() + 1));
+        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(customerTransactionContextDTO));
+
+        try {
+            ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
+            validateChallengeRequest.setExternalId(UUID.randomUUID());
+            customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
+            Assert.fail("Can't be here");
+        } catch (TenpoException e) {
+            Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.UNPROCESSABLE_ENTITY, e.getCode());
+            Assert.assertEquals("Codigo debe ser 1201", TRANSACTION_CONTEXT_EXPIRED, e.getErrorCode());
+            throw e;
+        }
+    }
+
+    @Test(expected = TenpoException.class)
+    public void validateChallengeTrxContextRejectedByStatus() {
+
+        CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
+        customerTransactionContextDTO.setStatus(CustomerTransactionStatus.REJECTED);
+        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(customerTransactionContextDTO));
+
+        try {
+            ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
+            validateChallengeRequest.setExternalId(UUID.randomUUID());
+            customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
+            Assert.fail("Can't be here");
+        } catch (TenpoException e) {
+            Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.UNPROCESSABLE_ENTITY, e.getCode());
+            Assert.assertEquals("Codigo debe ser igual 1151", BLOCKED_PASSWORD, e.getErrorCode());
+            throw e;
+        }
+    }
+
+    @Test(expected = TenpoException.class)
+    public void validateChallengeTrxContextRejectedByAttempts() {
+
+        CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
+        customerTransactionContextDTO.setAttempts(transactionContextProperties.getPasswordAttempts() + 1);
+        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(customerTransactionContextDTO));
+
+        try {
+            ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
+            validateChallengeRequest.setExternalId(UUID.randomUUID());
+            customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
+            Assert.fail("Can't be here");
+        } catch (TenpoException e) {
+            Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.UNPROCESSABLE_ENTITY, e.getCode());
+            Assert.assertEquals("Codigo debe ser igual 1151", BLOCKED_PASSWORD, e.getErrorCode());
+            throw e;
+        }
+    }
+
+    @Test(expected = TenpoException.class)
+    public void validateChallengeUserRestClientException() {
+
+        CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
+        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(customerTransactionContextDTO));
+
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenThrow(new NullPointerException());
+
+        try {
+            ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
+            validateChallengeRequest.setExternalId(UUID.randomUUID());
+            customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
+            Assert.fail("Can't be here");
+        } catch (TenpoException e) {
+            Assert.assertEquals("HttpStatus debe ser 401", HttpStatus.UNAUTHORIZED, e.getCode());
+            Assert.assertEquals("Codigo debe ser 1412", INVALID_TOKEN, e.getErrorCode());
             throw e;
         }
     }
@@ -94,25 +212,21 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     @Test(expected = TenpoException.class)
     public void validateChallengeUserNotFound() {
 
-        CustomerTransactionContextDTO customerTransactionContextDTO = new CustomerTransactionContextDTO();
-        customerTransactionContextDTO.setStatus(CustomerTransactionStatus.PENDING);
-        customerTransactionContextDTO.setAttempts(0);
-
+        CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         when(userRestClient.getUser(Mockito.any(UUID.class)))
                 .thenReturn(Optional.empty());
 
-        try{
+        try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
             validateChallengeRequest.setExternalId(UUID.randomUUID());
             customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
             Assert.fail("Can't be here");
-        }catch (TenpoException e){
-            Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.NOT_FOUND, e.getCode());
-            Assert.assertEquals("Codigo debe ser igual", USER_NOT_FOUND_OR_LOCKED, e.getErrorCode());
-            Assert.assertEquals("Msj debe ser igual","El cliente no existe o está bloqueado",e.getMessage());
+        } catch (TenpoException e) {
+            Assert.assertEquals("HttpStatus debe ser 401", HttpStatus.UNAUTHORIZED, e.getCode());
+            Assert.assertEquals("Codigo debe ser 1412", INVALID_TOKEN, e.getErrorCode());
             throw e;
         }
     }
@@ -120,10 +234,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     @Test(expected = TenpoException.class)
     public void validateChallengeUserNoActive() {
 
-        CustomerTransactionContextDTO customerTransactionContextDTO = new CustomerTransactionContextDTO();
-        customerTransactionContextDTO.setStatus(CustomerTransactionStatus.PENDING);
-        customerTransactionContextDTO.setAttempts(0);
-
+        CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
@@ -134,27 +245,51 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
         when(userRestClient.getUser(Mockito.any(UUID.class)))
                 .thenReturn(Optional.of(userResponse));
 
-        try{
+        try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
             validateChallengeRequest.setExternalId(UUID.randomUUID());
             customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
             Assert.fail("Can't be here");
-        }catch (TenpoException e){
-            Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.NOT_FOUND, e.getCode());
-            Assert.assertEquals("Codigo debe ser igual", USER_NOT_FOUND_OR_LOCKED, e.getErrorCode());
-            Assert.assertEquals("Msj debe ser igual","El cliente no existe o está bloqueado",e.getMessage());
+        } catch (TenpoException e) {
+            Assert.assertEquals("HttpStatus debe ser 401", HttpStatus.UNAUTHORIZED, e.getCode());
+            Assert.assertEquals("Codigo debe ser 1412", INVALID_TOKEN, e.getErrorCode());
             throw e;
+        }
+    }
+
+    @Test
+    public void validateChallengeVerifierRestThrowsException() {
+
+        CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
+        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(customerTransactionContextDTO));
+
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(UUID.randomUUID());
+        userResponse.setState(UserStateType.ACTIVE);
+
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
+
+        when(verifierRestClient.validateTwoFactorCode(Mockito.any(UUID.class), Mockito.anyString()))
+                .thenThrow(new TenpoException(HttpStatus.INTERNAL_SERVER_ERROR, INTERNAL_ERROR));
+        try {
+            ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
+            validateChallengeRequest.setExternalId(customerTransactionContextDTO.getExternalId());
+            validateChallengeRequest.setResponse("123456");
+
+            customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
+            Assert.fail("Debe tirar excepcion");
+        } catch (TenpoException e) {
+            Assert.assertEquals("Debe ser la misma excepcion", HttpStatus.INTERNAL_SERVER_ERROR, e.getCode());
+            Assert.assertEquals("Debe ser la misma excepcion", INTERNAL_ERROR, e.getErrorCode());
         }
     }
 
     @Test
     public void validateChallengeOK() {
 
-        CustomerTransactionContextDTO customerTransactionContextDTO = new CustomerTransactionContextDTO();
-        customerTransactionContextDTO.setStatus(CustomerTransactionStatus.PENDING);
-        customerTransactionContextDTO.setAttempts(0);
-        customerTransactionContextDTO.setExternalId(UUID.randomUUID());
-
+        CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
@@ -185,11 +320,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     @Test
     public void validateChallengeFalse() {
 
-        CustomerTransactionContextDTO customerTransactionContextDTO = new CustomerTransactionContextDTO();
-        customerTransactionContextDTO.setStatus(CustomerTransactionStatus.PENDING);
-        customerTransactionContextDTO.setAttempts(0);
-        customerTransactionContextDTO.setExternalId(UUID.randomUUID());
-
+        CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
@@ -212,5 +343,14 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
         }catch (TenpoException e){
             Assert.fail("Can't be here");
         }
+    }
+
+    private CustomerTransactionContextDTO createTransaction() {
+        CustomerTransactionContextDTO customerTransactionContextDTO = new CustomerTransactionContextDTO();
+        customerTransactionContextDTO.setExternalId(UUID.randomUUID());
+        customerTransactionContextDTO.setStatus(CustomerTransactionStatus.PENDING);
+        customerTransactionContextDTO.setAttempts(0);
+        customerTransactionContextDTO.setCreated(LocalDateTime.now(ZoneId.of("UTC")));
+        return customerTransactionContextDTO;
     }
 }

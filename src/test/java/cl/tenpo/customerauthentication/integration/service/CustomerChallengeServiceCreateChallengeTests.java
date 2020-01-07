@@ -2,6 +2,7 @@ package cl.tenpo.customerauthentication.integration.service;
 
 import cl.tenpo.customerauthentication.CustomerAuthenticationMsApplicationTests;
 import cl.tenpo.customerauthentication.api.dto.CreateChallengeRequest;
+import cl.tenpo.customerauthentication.constants.ErrorCode;
 import cl.tenpo.customerauthentication.database.entity.CustomerChallengeEntity;
 import cl.tenpo.customerauthentication.database.entity.CustomerTransactionContextEntity;
 import cl.tenpo.customerauthentication.database.repository.CustomerChallengeRepository;
@@ -13,6 +14,7 @@ import cl.tenpo.customerauthentication.model.ChallengeStatus;
 import cl.tenpo.customerauthentication.model.ChallengeType;
 import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
 import cl.tenpo.customerauthentication.model.NewCustomerChallenge;
+import cl.tenpo.customerauthentication.properties.CustomerTransactionContextProperties;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
 import org.junit.After;
 import org.junit.Assert;
@@ -22,11 +24,13 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -34,7 +38,7 @@ import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-public class CustomerChallengeServiceTests extends CustomerAuthenticationMsApplicationTests {
+public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthenticationMsApplicationTests {
 
     private final UUID mockUuid = UUID.fromString("123e4567-e89b-12d3-a456-426655440000");
     private final String mockTwoFactorCode = "123321";
@@ -50,6 +54,9 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
 
     @MockBean
     private VerifierRestClient verifierRestClient;
+
+    @Autowired
+    private CustomerTransactionContextProperties transactionContextProperties;
 
     @Before
     @After
@@ -138,27 +145,143 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
         Assert.assertEquals("Debe tener el verifier id que retorna el mock", mockUuid, challengeEntity.getVerifierId());
         Assert.assertEquals("Debe tener el id devuelto", challengeEntity.getId(), newCustomerChallenge.getChallengeId());
         Assert.assertEquals("Debe tener status OPEN", ChallengeStatus.OPEN, challengeEntity.getStatus());
-
     }
 
     @Test
-    public void createChallenge_whenPreviousChallengeExpired_ThenThrow1200() {
+    public void createChallenge_WhenTrxAlreadyExpiredByStatus_ThenThrowException() {
         UUID userId = UUID.randomUUID();
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
 
         // Agrega la transaccion ya existente
         CustomerTransactionContextEntity savedTransactionEntity = createTransactionFromRequest(userId, createChallengeRequest);
-        savedTransactionEntity.setCreated(LocalDateTime.now(ZoneId.of("UTC")).minusMinutes(11)); // Creada hace 11 inutos se considera expirada
+        savedTransactionEntity.setStatus(CustomerTransactionStatus.EXPIRED);
         customerTransactionContextRespository.save(savedTransactionEntity);
 
-        // Run test
+        // Test
         try {
             customerChallengeService.createRequestedChallenge(userId, createChallengeRequest);
-            Assert.fail("No debe pasar por aqui");
+            Assert.fail("Debe tirar excepcion tenpo");
         } catch (TenpoException te) {
-            Assert.assertEquals("Debe tirar error 1200", "1200", te.getErrorCode());
+            Assert.assertEquals("Debe ser 422", HttpStatus.UNPROCESSABLE_ENTITY, te.getCode());
+            Assert.assertEquals("Debe ser 1200", ErrorCode.TRANSACTION_CONTEXT_EXPIRED, te.getErrorCode());
         } catch (Exception e) {
-            Assert.fail("Debe tirar TenpoException");
+            Assert.fail("Debe tirar excepcion tenpo");
+        }
+    }
+
+    @Test
+    public void createChallenge_WhenTrxAlreadyExpiredByTime_ThenThrowException() {
+        UUID userId = UUID.randomUUID();
+        CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
+
+        // Agrega la transaccion PENDING pero es vieja para expirarla
+        CustomerTransactionContextEntity savedTransactionEntity = createTransactionFromRequest(userId, createChallengeRequest);
+        savedTransactionEntity.setStatus(CustomerTransactionStatus.PENDING);
+        savedTransactionEntity.setCreated(LocalDateTime.now(ZoneId.of("UTC")).minusMinutes(transactionContextProperties.getExpirationTimeInMinutes() + 1));
+        savedTransactionEntity = customerTransactionContextRespository.save(savedTransactionEntity);
+
+        try {
+            // Test
+            customerChallengeService.createRequestedChallenge(userId, createChallengeRequest);
+            Assert.fail("Debe tirar excepcion tenpo");
+        } catch (TenpoException te) {
+            Assert.assertEquals("Debe ser 422", HttpStatus.UNPROCESSABLE_ENTITY, te.getCode());
+            Assert.assertEquals("Debe ser 1200", ErrorCode.TRANSACTION_CONTEXT_EXPIRED, te.getErrorCode());
+        } catch (Exception e) {
+            Assert.fail("Debe tirar excepcion tenpo");
+        }
+
+        Optional<CustomerTransactionContextEntity> storedTransactionEntity = customerTransactionContextRespository.findByExternalId(savedTransactionEntity.getExternalId());
+        Assert.assertTrue("Debe existir", storedTransactionEntity.isPresent());
+        Assert.assertEquals("Ahora debe tener estado EXPIRED", CustomerTransactionStatus.EXPIRED, storedTransactionEntity.get().getStatus());
+    }
+
+    @Test
+    public void createChallenge_WhenTrxAlreadyCanceled_ThenThrowException() {
+        UUID userId = UUID.randomUUID();
+        CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
+
+        // Agrega la transaccion ya existente
+        CustomerTransactionContextEntity savedTransactionEntity = createTransactionFromRequest(userId, createChallengeRequest);
+        savedTransactionEntity.setStatus(CustomerTransactionStatus.CANCEL);
+        customerTransactionContextRespository.save(savedTransactionEntity);
+
+        // Test
+        try {
+            customerChallengeService.createRequestedChallenge(userId, createChallengeRequest);
+            Assert.fail("Debe tirar excepcion tenpo");
+        } catch (TenpoException te) {
+            Assert.assertEquals("Debe ser 422", HttpStatus.UNPROCESSABLE_ENTITY, te.getCode());
+            Assert.assertEquals("Debe ser 1201", ErrorCode.TRANSACTION_CONTEXT_CANCELED, te.getErrorCode());
+        } catch (Exception e) {
+            Assert.fail("Debe tirar excepcion tenpo");
+        }
+    }
+
+    @Test
+    public void createChallenge_WhenTrxAlreadyAuthorized_ThenThrowException() {
+        UUID userId = UUID.randomUUID();
+        CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
+
+        // Agrega la transaccion ya existente
+        CustomerTransactionContextEntity savedTransactionEntity = createTransactionFromRequest(userId, createChallengeRequest);
+        savedTransactionEntity.setStatus(CustomerTransactionStatus.AUTHORIZED);
+        customerTransactionContextRespository.save(savedTransactionEntity);
+
+        // Test
+        try {
+            customerChallengeService.createRequestedChallenge(userId, createChallengeRequest);
+            Assert.fail("Debe tirar excepcion tenpo");
+        } catch (TenpoException te) {
+            Assert.assertEquals("Debe ser 422", HttpStatus.UNPROCESSABLE_ENTITY, te.getCode());
+            Assert.assertEquals("Debe ser 1202", ErrorCode.TRANSACTION_CONTEXT_CLOSED, te.getErrorCode());
+        } catch (Exception e) {
+            Assert.fail("Debe tirar excepcion tenpo");
+        }
+    }
+
+    @Test
+    public void createChallenge_WhenTrxAlreadyRejectedByStatus_ThenThrowException() {
+        UUID userId = UUID.randomUUID();
+        CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
+
+        // Agrega la transaccion ya existente
+        CustomerTransactionContextEntity savedTransactionEntity = createTransactionFromRequest(userId, createChallengeRequest);
+        savedTransactionEntity.setStatus(CustomerTransactionStatus.REJECTED);
+        customerTransactionContextRespository.save(savedTransactionEntity);
+
+        // Test
+        try {
+            customerChallengeService.createRequestedChallenge(userId, createChallengeRequest);
+            Assert.fail("Debe tirar excepcion tenpo");
+        } catch (TenpoException te) {
+            Assert.assertEquals("Debe ser 422", HttpStatus.UNPROCESSABLE_ENTITY, te.getCode());
+            Assert.assertEquals("Debe ser 1151", ErrorCode.BLOCKED_PASSWORD, te.getErrorCode());
+        } catch (Exception e) {
+            Assert.fail("Debe tirar excepcion tenpo");
+        }
+    }
+
+    @Test
+    public void createChallenge_WhenTrxAlreadyRejectedByAttempts_ThenThrowException() {
+        UUID userId = UUID.randomUUID();
+        CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
+
+        // Agrega la transaccion PENDING pero con muchos intentos
+        CustomerTransactionContextEntity savedTransactionEntity = createTransactionFromRequest(userId, createChallengeRequest);
+        savedTransactionEntity.setStatus(CustomerTransactionStatus.PENDING);
+        savedTransactionEntity.setAttempts(4);
+        customerTransactionContextRespository.save(savedTransactionEntity);
+
+        // Test
+        try {
+            customerChallengeService.createRequestedChallenge(userId, createChallengeRequest);
+            Assert.fail("Debe tirar excepcion tenpo");
+        } catch (TenpoException te) {
+            Assert.assertEquals("Debe ser 422", HttpStatus.UNPROCESSABLE_ENTITY, te.getCode());
+            Assert.assertEquals("Debe ser 1151", ErrorCode.BLOCKED_PASSWORD, te.getErrorCode());
+        } catch (Exception e) {
+            Assert.fail("Debe tirar excepcion tenpo");
         }
     }
 
@@ -283,6 +406,7 @@ public class CustomerChallengeServiceTests extends CustomerAuthenticationMsAppli
         savedTransactionEntity.setStatus(CustomerTransactionStatus.PENDING);
         savedTransactionEntity.setCreated(LocalDateTime.now(ZoneId.of("UTC")));
         savedTransactionEntity.setUpdated(LocalDateTime.now(ZoneId.of("UTC")));
+        savedTransactionEntity.setAttempts(0);
         return savedTransactionEntity;
     }
 

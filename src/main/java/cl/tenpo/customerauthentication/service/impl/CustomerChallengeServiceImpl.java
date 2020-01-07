@@ -32,7 +32,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static cl.tenpo.customerauthentication.constants.ErrorCode.*;
-import static cl.tenpo.customerauthentication.constants.ErrorCode.TRANSACTION_CONTEXT_LOCKED;
 
 @Service
 @Slf4j
@@ -52,6 +51,9 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
 
     @Autowired
     private Customer2faService customer2faService;
+
+    @Autowired
+    private CustomerTransactionContextProperties transactionContextProperties;
 
     @Override
     public NewCustomerChallenge createRequestedChallenge(UUID userId, CreateChallengeRequest createChallengeRequest) {
@@ -78,22 +80,21 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
                     .updated(LocalDateTime.now(ZoneId.of("UTC")))
                     .build());
         } else {
+            // Ya existe, se valida que este vigente
             customer2faService.validateTransactionContextStatus(customerTrx.get(), true);
         }
 
-        List<CustomerChallengeEntity> challengeList = customerChallengeRepository.findByTransactionContextId(customerTrx.get().getId());
-
         // Revisar si existe alguno creado hace menos de 30 segundos, del mismo tipo y estado OPEN
+        List<CustomerChallengeEntity> challengeList = customerChallengeRepository.findByTransactionContextId(customerTrx.get().getId());
         Optional<CustomerChallengeEntity> ongoingChallenge = challengeList.stream()
-                .filter(challenge -> { return ChallengeStatus.OPEN.equals(challenge.getStatus()) &&
-                                              createChallengeRequest.getChallengeType().equals(challenge.getChallengeType()) &&
-                                              challenge.getCreated().isAfter(LocalDateTime.now(ZoneId.of("UTC")).minusSeconds(30)); })
+                .filter(challenge -> ChallengeStatus.OPEN.equals(challenge.getStatus()) &&
+                                     createChallengeRequest.getChallengeType().equals(challenge.getChallengeType()) &&
+                                     challenge.getCreated().isAfter(LocalDateTime.now(ZoneId.of("UTC")).minusSeconds(transactionContextProperties.getChallengeReuseTimeInSeconds())))
                 .sorted((c1, c2) -> c2.getCreated().compareTo(c1.getCreated()))
                 .findFirst();
 
         // Existe uno reciente?
         if (ongoingChallenge.isPresent()) {
-
             log.info("[createRequestedChallenge] Hay un challenge reciente de ese tipo.");
 
             // Buscar su codigo
@@ -130,7 +131,6 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
             .build()
         );
         log.info(String.format("[createRequestedChallenge] Challenge nuevo con id:%s", customerChallengeDTO.get().getId()));
-
         return NewCustomerChallenge.builder()
                 .challengeId(customerChallengeDTO.get().getId())
                 .code(twoFactorResponse.getGeneratedCode())
@@ -145,7 +145,6 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
             throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY,"1200","Objeto no puede ser null");
         }
         CustomerTransactionContextEntity customerTransactionContextEntity = customerTransactionContextRespository.save(convertToEntity(customerTransactionContextDTO));
-
         return Optional.ofNullable(convertToDto(customerTransactionContextEntity));
     }
 

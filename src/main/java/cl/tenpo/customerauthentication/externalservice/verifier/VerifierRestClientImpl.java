@@ -84,8 +84,7 @@ public class VerifierRestClientImpl implements VerifierRestClient {
             log.error(String.format("[validateTwoFactorCode] Error HTTP al pedir codigo 2 factores [%s]", e.getStatusCode()));
             return false;
         } catch (Exception e) {
-            log.error("[validateTwoFactorCode] Exception:",e);
-            throw (e);
+            throw new TenpoException(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR);
         }
     }
 }

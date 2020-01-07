@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties(prefix = "constants.transaction-context")
 public class CustomerTransactionContextProperties {
-    private Integer expirationTime;
+    private Integer expirationTimeInMinutes;
     private Integer passwordAttempts;
+    private Integer challengeReuseTimeInSeconds;
 }

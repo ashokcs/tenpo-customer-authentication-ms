@@ -13,6 +13,6 @@ public interface Customer2faService {
     List<String> listChallenge(UUID userId);
     void createChallenge(UUID userId, CreateChallengeRequest request);
     ValidateChallengeResponse validateChallenge(UUID userId, ValidateChallengeRequest request);
-    AbortChallengeResponse abortResponse(UUID userId, AbortChallengeRequest request);
+    AbortChallengeResponse abortChallenge(UUID userId, AbortChallengeRequest request);
     void validateTransactionContextStatus(CustomerTransactionContextDTO transactionContextDTO, boolean validateCanceled);
 }

@@ -172,7 +172,7 @@ public class Customer2faServiceImpl implements Customer2faService {
     }
 
     @Override
-    public AbortChallengeResponse abortResponse(UUID userId, AbortChallengeRequest request) {
+    public AbortChallengeResponse abortChallenge(UUID userId, AbortChallengeRequest request) {
 
         Optional<CustomerTransactionContextDTO> customerTransactionContextDTO = customerChallengeService.findByExternalId(request.getExternalId());
         if(!customerTransactionContextDTO.isPresent()){
@@ -189,15 +189,11 @@ public class Customer2faServiceImpl implements Customer2faService {
         log.info("[abortResponse] Usuario validado: [{}]", userResponse.getTributaryIdentifier());
 
         // Marcar estado como cancelado
-        customerTransactionContextDTO = customerChallengeService.updateTransactionContextStatus(request.getExternalId(), CustomerTransactionStatus.CANCEL);
-        if(!customerTransactionContextDTO.isPresent()){
-            log.error("[abortResponse] Error al actualizar el estado");
-            throw new TenpoException(HttpStatus.INTERNAL_SERVER_ERROR, INTERNAL_ERROR);
-        }
+        customerTransactionContextDTO = customerChallengeService.updateTransactionContextStatus(customerTransactionContextDTO.get().getId(), CustomerTransactionStatus.CANCEL);
 
         return AbortChallengeResponse.builder()
                .externalId(customerTransactionContextDTO.get().getExternalId())
-               .result(customerTransactionContextDTO.get().getStatus())
+               .result(ChallengeResult.CANCELADO)
                .build();
     }
 
@@ -300,7 +296,7 @@ public class Customer2faServiceImpl implements Customer2faService {
         }
 
         // Verifica duracion de la trx y la expira si es necesario
-        if (LocalDateTime.now(ZoneId.of("UTC")).isAfter(transactionContextDTO.getCreated().plusMinutes(transactionContextProperties.getExpirationTime()))) {
+        if (LocalDateTime.now(ZoneId.of("UTC")).isAfter(transactionContextDTO.getCreated().plusMinutes(transactionContextProperties.getExpirationTimeInMinutes()))) {
             customerChallengeService.updateTransactionContextStatus(transactionContextDTO.getId(), CustomerTransactionStatus.EXPIRED);
             throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, TRANSACTION_CONTEXT_EXPIRED);
         }
@@ -311,7 +307,7 @@ public class Customer2faServiceImpl implements Customer2faService {
         }
 
         // Verifica la cantidad de intentos y actualiza status de la trx
-        if (transactionContextDTO.getAttempts() > transactionContextProperties.getPasswordAttempts()) {
+        if (transactionContextDTO.getAttempts() >= transactionContextProperties.getPasswordAttempts()) {
             customerChallengeService.updateTransactionContextStatus(transactionContextDTO.getId(), CustomerTransactionStatus.REJECTED);
             throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, BLOCKED_PASSWORD);
         }
