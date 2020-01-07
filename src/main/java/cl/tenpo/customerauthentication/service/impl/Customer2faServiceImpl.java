@@ -157,7 +157,7 @@ public class Customer2faServiceImpl implements Customer2faService {
 
         if (verifierResponse) {
             //Actualiza status a TRX authorizada
-            customerChallengeService.updateTransactionContextStatus(customerTransactionContextDTO.get().getExternalId(),CustomerTransactionStatus.AUTHORIZED);
+            customerChallengeService.updateTransactionContextStatus(customerTransactionContextDTO.get().getId(),CustomerTransactionStatus.AUTHORIZED);
             return ValidateChallengeResponse.builder()
                     .result(ChallengeResult.AUTH_EXITOSA)
                     .externalId(customerTransactionContextDTO.get().getExternalId()).build();

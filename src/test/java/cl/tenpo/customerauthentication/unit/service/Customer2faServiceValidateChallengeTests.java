@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static cl.tenpo.customerauthentication.constants.ErrorCode.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
@@ -54,7 +55,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
     @Test(expected = TenpoException.class)
     public void validateChallengeExternalNotFound(){
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.empty());
         try{
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
@@ -72,7 +73,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.AUTHORIZED);
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
@@ -92,7 +93,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.CANCEL);
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
@@ -112,7 +113,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.EXPIRED);
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
@@ -132,7 +133,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setCreated(LocalDateTime.now(ZoneId.of("UTC")).minusMinutes(transactionContextProperties.getExpirationTimeInMinutes() + 1));
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
@@ -152,7 +153,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.REJECTED);
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
@@ -172,7 +173,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setAttempts(transactionContextProperties.getPasswordAttempts() + 1);
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
@@ -191,10 +192,10 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     public void validateChallengeUserRestClientException() {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
-        when(userRestClient.getUser(Mockito.any(UUID.class)))
+        when(userRestClient.getUser(any(UUID.class)))
                 .thenThrow(new NullPointerException());
 
         try {
@@ -213,10 +214,10 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     public void validateChallengeUserNotFound() {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
-        when(userRestClient.getUser(Mockito.any(UUID.class)))
+        when(userRestClient.getUser(any(UUID.class)))
                 .thenReturn(Optional.empty());
 
         try {
@@ -235,14 +236,14 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     public void validateChallengeUserNoActive() {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         UserResponse userResponse = new UserResponse();
         userResponse.setId(UUID.randomUUID());
         userResponse.setState(UserStateType.BLOCKED);
 
-        when(userRestClient.getUser(Mockito.any(UUID.class)))
+        when(userRestClient.getUser(any(UUID.class)))
                 .thenReturn(Optional.of(userResponse));
 
         try {
@@ -261,17 +262,17 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     public void validateChallengeVerifierRestThrowsException() {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         UserResponse userResponse = new UserResponse();
         userResponse.setId(UUID.randomUUID());
         userResponse.setState(UserStateType.ACTIVE);
 
-        when(userRestClient.getUser(Mockito.any(UUID.class)))
+        when(userRestClient.getUser(any(UUID.class)))
                 .thenReturn(Optional.of(userResponse));
 
-        when(verifierRestClient.validateTwoFactorCode(Mockito.any(UUID.class), Mockito.anyString()))
+        when(verifierRestClient.validateTwoFactorCode(any(UUID.class), any()))
                 .thenThrow(new TenpoException(HttpStatus.INTERNAL_SERVER_ERROR, INTERNAL_ERROR));
         try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
@@ -290,17 +291,17 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     public void validateChallengeOK() {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         UserResponse userResponse = new UserResponse();
         userResponse.setId(UUID.randomUUID());
         userResponse.setState(UserStateType.ACTIVE);
 
-        when(userRestClient.getUser(Mockito.any(UUID.class)))
+        when(userRestClient.getUser(any(UUID.class)))
                 .thenReturn(Optional.of(userResponse));
 
-        when(verifierRestClient.validateTwoFactorCode(Mockito.any(UUID.class),Mockito.anyString()))
+        when(verifierRestClient.validateTwoFactorCode(any(UUID.class), any()))
                 .thenReturn(true);
         try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
@@ -321,17 +322,17 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     public void validateChallengeFalse() {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         UserResponse userResponse = new UserResponse();
         userResponse.setId(UUID.randomUUID());
         userResponse.setState(UserStateType.ACTIVE);
 
-        when(userRestClient.getUser(Mockito.any(UUID.class)))
+        when(userRestClient.getUser(any(UUID.class)))
                 .thenReturn(Optional.of(userResponse));
 
-        when(verifierRestClient.validateTwoFactorCode(Mockito.any(UUID.class),Mockito.anyString()))
+        when(verifierRestClient.validateTwoFactorCode(any(UUID.class),Mockito.anyString()))
                 .thenReturn(false);
         try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();

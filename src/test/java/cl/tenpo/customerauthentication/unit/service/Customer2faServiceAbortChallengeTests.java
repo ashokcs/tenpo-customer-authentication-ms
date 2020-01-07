@@ -30,6 +30,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static cl.tenpo.customerauthentication.constants.ErrorCode.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
@@ -50,7 +51,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
     @Test(expected = TenpoException.class)
     public void abortChallengeExtenalNotFound(){
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.empty());
         try{
             AbortChallengeRequest abortChallengeRequest = new AbortChallengeRequest();
@@ -68,7 +69,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.AUTHORIZED);
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
@@ -88,7 +89,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.EXPIRED);
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
@@ -108,7 +109,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setCreated(LocalDateTime.now(ZoneId.of("UTC")).minusMinutes(transactionContextProperties.getExpirationTimeInMinutes() + 1));
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
@@ -128,7 +129,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.REJECTED);
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
@@ -149,7 +150,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.PENDING);
         customerTransactionContextDTO.setAttempts(transactionContextProperties.getPasswordAttempts() + 1);
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
@@ -167,10 +168,10 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     @Test(expected = TenpoException.class)
     public void abortChallengeUserRestClientThrowsException() {
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
-        when(userRestClient.getUser(Mockito.any(UUID.class)))
+        when(userRestClient.getUser(any(UUID.class)))
                 .thenThrow(new NullPointerException());
 
         try {
@@ -188,10 +189,10 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     @Test(expected = TenpoException.class)
     public void abortChallengeUserNotFound() {
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
-        when(userRestClient.getUser(Mockito.any(UUID.class)))
+        when(userRestClient.getUser(any(UUID.class)))
                 .thenReturn(Optional.empty());
 
         try {
@@ -209,14 +210,14 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     @Test(expected = TenpoException.class)
     public void abortChallengeUserNoActive() {
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         UserResponse userResponse = new UserResponse();
         userResponse.setId(UUID.randomUUID());
         userResponse.setState(UserStateType.BLOCKED);
 
-        when(userRestClient.getUser(Mockito.any(UUID.class)))
+        when(userRestClient.getUser(any(UUID.class)))
                 .thenReturn(Optional.of(userResponse));
 
         try {
@@ -234,17 +235,17 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     @Test
     public void abortChallengeOK() {
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         UserResponse userResponse = new UserResponse();
         userResponse.setId(UUID.randomUUID());
         userResponse.setState(UserStateType.ACTIVE);
 
-        when(userRestClient.getUser(Mockito.any(UUID.class)))
+        when(userRestClient.getUser(any(UUID.class)))
                 .thenReturn(Optional.of(userResponse));
 
-        when(customerChallengeService.updateTransactionContextStatus(Mockito.any(UUID.class),Mockito.any(CustomerTransactionStatus.class)))
+        when(customerChallengeService.updateTransactionContextStatus(any(), any()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
@@ -265,17 +266,17 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     public void abortCancelledChallengeOK() {
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.CANCEL); // Challenge ya cancelado
-        when(customerChallengeService.findByExternalId(Mockito.any(UUID.class)))
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         UserResponse userResponse = new UserResponse();
         userResponse.setId(UUID.randomUUID());
         userResponse.setState(UserStateType.ACTIVE);
 
-        when(userRestClient.getUser(Mockito.any(UUID.class)))
+        when(userRestClient.getUser(any(UUID.class)))
                 .thenReturn(Optional.of(userResponse));
 
-        when(customerChallengeService.updateTransactionContextStatus(Mockito.any(UUID.class),Mockito.any(CustomerTransactionStatus.class)))
+        when(customerChallengeService.updateTransactionContextStatus(any(), any()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {

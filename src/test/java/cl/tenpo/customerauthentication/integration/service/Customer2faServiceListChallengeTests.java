@@ -1,6 +1,7 @@
 package cl.tenpo.customerauthentication.integration.service;
 
 import cl.tenpo.customerauthentication.CustomerAuthenticationMsApplicationTests;
+import cl.tenpo.customerauthentication.constants.ErrorCode;
 import cl.tenpo.customerauthentication.exception.TenpoException;
 import cl.tenpo.customerauthentication.externalservice.user.UserRestClientImpl;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserResponse;
@@ -13,6 +14,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.List;
@@ -58,8 +60,8 @@ public class Customer2faServiceListChallengeTests  extends CustomerAuthenticatio
           customer2faService.listChallenge(UUID.randomUUID());
           Assert.fail("Can't be here");
        }catch (TenpoException e){
-           Assert.assertEquals("El codigo debe ser 1150","1150", e.getErrorCode());
-           Assert.assertEquals("El msj debe ser -El cliente no existe o está bloqueado-","El cliente no existe o está bloqueado", e.getMessage());
+           Assert.assertEquals("El codigo debe ser 401", HttpStatus.UNAUTHORIZED, e.getCode());
+           Assert.assertEquals("El codigo debe ser 1150", ErrorCode.INVALID_TOKEN, e.getErrorCode());
            throw  e;
        }
     }
@@ -77,8 +79,8 @@ public class Customer2faServiceListChallengeTests  extends CustomerAuthenticatio
             customer2faService.listChallenge(userId);
             Assert.fail("Can't be here");
         }catch (TenpoException e){
-            Assert.assertEquals("El codigo debe ser 1150","1150", e.getErrorCode());
-            Assert.assertEquals("El msj debe ser -El cliente no existe o está bloqueado-","El cliente no existe o está bloqueado", e.getMessage());
+            Assert.assertEquals("El codigo debe ser 401", HttpStatus.UNAUTHORIZED, e.getCode());
+            Assert.assertEquals("El codigo debe ser 1150", ErrorCode.INVALID_TOKEN, e.getErrorCode());
             throw  e;
         }
     }

@@ -36,6 +36,7 @@ import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
@@ -259,7 +260,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
                 .thenReturn(Optional.of(userResponse));
 
         // Verifier responde OK
-        when(verifierRestClient.validateTwoFactorCode(Mockito.any(UUID.class), Mockito.anyString()))
+        when(verifierRestClient.validateTwoFactorCode(any(), any()))
                 .thenReturn(true);
 
         ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
@@ -292,7 +293,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
                 .thenReturn(Optional.of(userResponse));
 
         // Verifier responde FALSE
-        when(verifierRestClient.validateTwoFactorCode(Mockito.any(UUID.class), Mockito.anyString()))
+        when(verifierRestClient.validateTwoFactorCode(Mockito.any(UUID.class), any()))
                 .thenReturn(false);
 
         ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
