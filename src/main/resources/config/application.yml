@@ -36,6 +36,10 @@ constants:
     twoFactorMailFrom: 'authentication@tenpo.cl'
     twoFactorMailSubject: 'Código verificación'
     twoFactorMailTemplate: '4c8f1b4c-02d0-4048-a50b-c39f5050ae3a'
+  transaction-context:
+    expirationTimeInMinutes: 10
+    passwordAttempts: 4
+    challengeReuseTimeInSeconds: 30
 
 krealo:
   security:

@@ -1,5 +1,7 @@
 package cl.tenpo.customerauthentication.externalservice.verifier;
 
+import cl.tenpo.customerauthentication.constants.ErrorCode;
+import cl.tenpo.customerauthentication.exception.TenpoException;
 import cl.tenpo.customerauthentication.externalservice.verifier.dto.GenerateTwoFactorResponse;
 import cl.tenpo.customerauthentication.properties.CloudProps;
 import cl.tenpo.customerauthentication.properties.UsersProps;
@@ -7,6 +9,7 @@ import cl.tenpo.customerauthentication.properties.VerifierProps;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
@@ -55,10 +58,10 @@ public class VerifierRestClientImpl implements VerifierRestClient {
             return response.getBody();
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             log.error("[generateTwoFactorCode] Error HTTP al pedir codigo 2 factores ",e);
-            throw (e);
+            throw new TenpoException(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR);
         } catch (Exception e) {
             log.error("[generateTwoFactorCode] Exception:",e);
-            throw (e);
+            throw new TenpoException(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR);
         }
     }
 
@@ -81,8 +84,7 @@ public class VerifierRestClientImpl implements VerifierRestClient {
             log.error(String.format("[validateTwoFactorCode] Error HTTP al pedir codigo 2 factores [%s]", e.getStatusCode()));
             return false;
         } catch (Exception e) {
-            log.error("[validateTwoFactorCode] Exception:",e);
-            throw (e);
+            throw new TenpoException(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR);
         }
     }
 }
