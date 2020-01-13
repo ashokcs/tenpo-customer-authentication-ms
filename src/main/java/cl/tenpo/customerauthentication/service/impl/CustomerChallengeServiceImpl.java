@@ -98,7 +98,7 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
             log.info("[createRequestedChallenge] Hay un challenge reciente de ese tipo.");
 
             // Buscar su codigo
-            twoFactorResponse = verifierRestClient.generateTwoFactorCode(userId, ongoingChallenge.get().getId(), null);
+            twoFactorResponse = verifierRestClient.generateTwoFactorCode(userId, ongoingChallenge.get().getVerifierId(), null);
 
             // No se ha vencido? Retornarlo.
             if (twoFactorResponse.getId().equals(ongoingChallenge.get().getVerifierId())) {
