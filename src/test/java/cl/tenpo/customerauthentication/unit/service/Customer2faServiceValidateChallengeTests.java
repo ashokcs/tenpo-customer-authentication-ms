@@ -325,6 +325,9 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
         when(customerChallengeService.findByExternalId(any(UUID.class)))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
+        when(customerChallengeService.addTransactionContextAttempt(any()))
+                .thenReturn(Optional.of(customerTransactionContextDTO));
+
         UserResponse userResponse = new UserResponse();
         userResponse.setId(UUID.randomUUID());
         userResponse.setState(UserStateType.ACTIVE);
@@ -343,6 +346,39 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
             Assert.assertEquals("External id deben ser iguales",validateChallengeRequest.getExternalId(),response.getExternalId());
         }catch (TenpoException e){
             Assert.fail("Can't be here");
+        }
+    }
+
+    @Test (expected = TenpoException.class)
+    public void validateChallengeFalseThrowsBlockedPasswordException() {
+
+        CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
+        when(customerChallengeService.findByExternalId(any(UUID.class)))
+                .thenReturn(Optional.of(customerTransactionContextDTO));
+
+        CustomerTransactionContextDTO attemptedTransaction = createTransaction();
+        attemptedTransaction.setAttempts(transactionContextProperties.getPasswordAttempts()); // Este es su ultimo intento
+        when(customerChallengeService.addTransactionContextAttempt(any()))
+                .thenReturn(Optional.of(attemptedTransaction));
+
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(UUID.randomUUID());
+        userResponse.setState(UserStateType.ACTIVE);
+
+        when(userRestClient.getUser(any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
+
+        when(verifierRestClient.validateTwoFactorCode(any(UUID.class), Mockito.anyString()))
+                .thenReturn(false);
+        try {
+            ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
+            validateChallengeRequest.setExternalId(customerTransactionContextDTO.getExternalId());
+            customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
+            Assert.fail("Can't be here");
+        } catch (TenpoException e) {
+            Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.UNPROCESSABLE_ENTITY, e.getCode());
+            Assert.assertEquals("Codigo debe ser igual 1151", BLOCKED_PASSWORD, e.getErrorCode());
+            throw e;
         }
     }
 
