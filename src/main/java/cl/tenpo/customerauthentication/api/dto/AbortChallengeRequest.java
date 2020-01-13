@@ -10,5 +10,5 @@ import java.util.UUID;
 @NoArgsConstructor
 @Builder
 public class AbortChallengeRequest {
-    private UUID externalId;
+    private String externalId;
 }

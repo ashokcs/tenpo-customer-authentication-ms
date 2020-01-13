@@ -23,7 +23,7 @@ public class CustomerAuthenticationMsApplicationTests {
 
 	protected CreateChallengeRequest randomChallengeRequest(){
 		CreateChallengeRequest createChallengeRequest = new CreateChallengeRequest();
-		createChallengeRequest.setExternalId(UUID.randomUUID());
+		createChallengeRequest.setExternalId(UUID.randomUUID().toString());
 		createChallengeRequest.setChallengeType(ChallengeType.OTP_PUSH);
 		createChallengeRequest.setCallbackUri("callback.com");
 		createChallengeRequest.setTransactionContext(TransactionContext.builder()

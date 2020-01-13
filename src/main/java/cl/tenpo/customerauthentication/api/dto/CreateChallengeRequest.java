@@ -11,7 +11,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Builder
 public class CreateChallengeRequest {
-    private UUID externalId;
+    private String externalId;
     private ChallengeType challengeType;
     private TransactionContext transactionContext;
     private String callbackUri;

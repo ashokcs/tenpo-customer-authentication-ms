@@ -73,7 +73,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     @Test(expected = TenpoException.class)
     public void whenTrxNotFound_ThenThrowNotFoundException() {
         AbortChallengeRequest abortChallengeRequest = new AbortChallengeRequest();
-        abortChallengeRequest.setExternalId(UUID.randomUUID());
+        abortChallengeRequest.setExternalId(UUID.randomUUID().toString());
 
         try {
             customer2faService.abortChallenge(UUID.randomUUID(), abortChallengeRequest);
@@ -287,7 +287,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     private CustomerTransactionContextEntity createTransaction(UUID userId) {
         CustomerTransactionContextEntity customerTransactionContextEntity = new CustomerTransactionContextEntity();
         customerTransactionContextEntity.setId(UUID.randomUUID());
-        customerTransactionContextEntity.setExternalId(UUID.randomUUID());
+        customerTransactionContextEntity.setExternalId(UUID.randomUUID().toString());
         customerTransactionContextEntity.setUserId(userId);
         customerTransactionContextEntity.setStatus(CustomerTransactionStatus.PENDING);
         customerTransactionContextEntity.setAttempts(0);

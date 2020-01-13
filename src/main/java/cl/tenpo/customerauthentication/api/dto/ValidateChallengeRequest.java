@@ -10,6 +10,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @Builder
 public class ValidateChallengeRequest {
-    private UUID externalId;
+    private String externalId;
     private String response;
 }

@@ -32,6 +32,7 @@ import java.util.UUID;
 
 import static cl.tenpo.customerauthentication.constants.ErrorCode.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
@@ -55,7 +56,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
     @Test(expected = TenpoException.class)
     public void validateChallengeExternalNotFound(){
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.empty());
         try{
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
@@ -73,12 +74,12 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.AUTHORIZED);
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
-            validateChallengeRequest.setExternalId(UUID.randomUUID());
+            validateChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -93,12 +94,12 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.CANCEL);
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
-            validateChallengeRequest.setExternalId(UUID.randomUUID());
+            validateChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -113,12 +114,12 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.EXPIRED);
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
-            validateChallengeRequest.setExternalId(UUID.randomUUID());
+            validateChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -133,12 +134,12 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setCreated(LocalDateTime.now(ZoneId.of("UTC")).minusMinutes(transactionContextProperties.getExpirationTimeInMinutes() + 1));
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
-            validateChallengeRequest.setExternalId(UUID.randomUUID());
+            validateChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -153,12 +154,12 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.REJECTED);
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
-            validateChallengeRequest.setExternalId(UUID.randomUUID());
+            validateChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -173,12 +174,12 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setAttempts(transactionContextProperties.getPasswordAttempts() + 1);
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
-            validateChallengeRequest.setExternalId(UUID.randomUUID());
+            validateChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -192,7 +193,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     public void validateChallengeUserRestClientException() {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         when(userRestClient.getUser(any(UUID.class)))
@@ -200,7 +201,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
         try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
-            validateChallengeRequest.setExternalId(UUID.randomUUID());
+            validateChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -214,7 +215,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     public void validateChallengeUserNotFound() {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         when(userRestClient.getUser(any(UUID.class)))
@@ -222,7 +223,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
         try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
-            validateChallengeRequest.setExternalId(UUID.randomUUID());
+            validateChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -236,7 +237,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     public void validateChallengeUserNoActive() {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         UserResponse userResponse = new UserResponse();
@@ -248,7 +249,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
         try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
-            validateChallengeRequest.setExternalId(UUID.randomUUID());
+            validateChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -262,7 +263,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     public void validateChallengeVerifierRestThrowsException() {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         UserResponse userResponse = new UserResponse();
@@ -291,7 +292,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     public void validateChallengeOK() {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         UserResponse userResponse = new UserResponse();
@@ -322,7 +323,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     public void validateChallengeFalse() {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         when(customerChallengeService.addTransactionContextAttempt(any()))
@@ -353,7 +354,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     public void validateChallengeFalseThrowsBlockedPasswordException() {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         CustomerTransactionContextDTO attemptedTransaction = createTransaction();
@@ -384,7 +385,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
 
     private CustomerTransactionContextDTO createTransaction() {
         CustomerTransactionContextDTO customerTransactionContextDTO = new CustomerTransactionContextDTO();
-        customerTransactionContextDTO.setExternalId(UUID.randomUUID());
+        customerTransactionContextDTO.setExternalId(UUID.randomUUID().toString());
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.PENDING);
         customerTransactionContextDTO.setAttempts(0);
         customerTransactionContextDTO.setCreated(LocalDateTime.now(ZoneId.of("UTC")));

@@ -1,5 +1,5 @@
 server:
-    port: 8081
+    port: 8088
     pattern:
         level: '%X{traceId} %5p'
 spring:

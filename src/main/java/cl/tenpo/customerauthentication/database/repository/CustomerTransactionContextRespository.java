@@ -9,5 +9,5 @@ import java.util.UUID;
 
 @Repository
 public interface CustomerTransactionContextRespository extends CrudRepository<CustomerTransactionContextEntity, UUID> {
-    Optional<CustomerTransactionContextEntity> findByExternalId(UUID externalId);
+    Optional<CustomerTransactionContextEntity> findByExternalId(String externalId);
 }

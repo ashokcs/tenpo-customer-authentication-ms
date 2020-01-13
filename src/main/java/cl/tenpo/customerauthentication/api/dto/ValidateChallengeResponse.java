@@ -12,7 +12,7 @@ import java.util.UUID;
 @Builder
 public class ValidateChallengeResponse {
 
-    private UUID externalId;
+    private String externalId;
     private ChallengeResult result;
 
 }

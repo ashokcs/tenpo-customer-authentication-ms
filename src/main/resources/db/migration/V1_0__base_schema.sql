@@ -1,7 +1,7 @@
 CREATE TABLE customer_transaction_context(
     id              UUID NOT NULL,
     user_id         UUID NOT NULL,
-    external_id     UUID NOT NULL,
+    external_id     VARCHAR(64) NOT NULL,
     tx_type         VARCHAR(20) NOT NULL,
     tx_amount       NUMERIC(15,2) NOT NULL,
     tx_currency     INTEGER NOT NULL,

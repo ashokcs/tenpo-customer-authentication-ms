@@ -7,7 +7,7 @@ public class TenpoException extends RuntimeException {
 
     private HttpStatus code;
     private String[] reasons;
-    private String errorCode;
+    private Integer errorCode;
 
     public TenpoException(String message) {
         super(message);
@@ -17,24 +17,24 @@ public class TenpoException extends RuntimeException {
         super(message, cause);
     }
 
-    public TenpoException(HttpStatus code, String errorCode) {
+    public TenpoException(HttpStatus code, Integer errorCode) {
         this.errorCode = errorCode;
         this.code = code;
     }
 
-    public TenpoException(HttpStatus code, String errorCode, String message) {
+    public TenpoException(HttpStatus code, Integer errorCode, String message) {
         this(message);
         this.code = code;
         this.errorCode = errorCode;
     }
 
-    public TenpoException(Exception cause, HttpStatus code, String errorCode) {
+    public TenpoException(Exception cause, HttpStatus code, Integer errorCode) {
         super(cause);
         this.code = code;
         this.errorCode = errorCode;
     }
 
-    public TenpoException(Exception cause, HttpStatus code, String errorCode, String message) {
+    public TenpoException(Exception cause, HttpStatus code, Integer errorCode, String message) {
         this(message, cause);
         this.code = code;
         this.errorCode = errorCode;
@@ -69,7 +69,7 @@ public class TenpoException extends RuntimeException {
         return this.reasons;
     }
 
-    public String getErrorCode() {
+    public Integer getErrorCode() {
         return this.errorCode;
     }
 
@@ -86,7 +86,7 @@ public class TenpoException extends RuntimeException {
         return this;
     }
 
-    public void setErrorCode(String errorCode) {
+    public void setErrorCode(Integer errorCode) {
         this.errorCode = errorCode;
     }
 }
