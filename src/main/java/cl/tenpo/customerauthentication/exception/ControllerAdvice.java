@@ -37,13 +37,13 @@ public class ControllerAdvice {
         return new ResponseEntity(errorResponse, ex.getCode());
     }
 
-    private String getErrorCode(TenpoException exception) {
-        return StringUtils.isBlank(exception.getErrorCode()) ? "SEMS-000" : exception.getErrorCode();
+    private Integer getErrorCode(TenpoException exception) {
+        return exception.getErrorCode() == null ? 9999 : exception.getErrorCode();
     }
 
     private String resolveMessage(TenpoException exception) {
         String message = null;
-        String key = this.getErrorCode(exception);
+        String key = this.getErrorCode(exception).toString();
         if (StringUtils.isBlank(exception.getMessage())) {
             String[] reasons = exception.getReasons();
             if (this.messageSource != null) {

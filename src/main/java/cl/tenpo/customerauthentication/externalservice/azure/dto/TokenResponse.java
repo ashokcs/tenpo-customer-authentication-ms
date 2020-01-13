@@ -19,10 +19,6 @@ import lombok.ToString;
 public class TokenResponse {
     @JsonProperty("token_type")
     private String tokenType;
-    @JsonProperty("expires_in")
-    private Double expiresIn;
-    @JsonProperty("ext_expires_in")
-    private Double extExpiresIn;
     @JsonProperty("access_token")
     private String accessToken;
 }

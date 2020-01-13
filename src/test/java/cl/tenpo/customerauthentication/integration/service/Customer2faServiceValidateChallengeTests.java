@@ -74,7 +74,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     @Test(expected = TenpoException.class)
     public void whenTrxNotFound_ThenThrowNotFoundException() {
         ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
-        validateChallengeRequest.setExternalId(UUID.randomUUID());
+        validateChallengeRequest.setExternalId(UUID.randomUUID().toString());
 
         try {
             customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
@@ -314,7 +314,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     private CustomerTransactionContextEntity createTransaction(UUID userId) {
         CustomerTransactionContextEntity customerTransactionContextEntity = new CustomerTransactionContextEntity();
         customerTransactionContextEntity.setId(UUID.randomUUID());
-        customerTransactionContextEntity.setExternalId(UUID.randomUUID());
+        customerTransactionContextEntity.setExternalId(UUID.randomUUID().toString());
         customerTransactionContextEntity.setUserId(userId);
         customerTransactionContextEntity.setStatus(CustomerTransactionStatus.PENDING);
         customerTransactionContextEntity.setAttempts(0);

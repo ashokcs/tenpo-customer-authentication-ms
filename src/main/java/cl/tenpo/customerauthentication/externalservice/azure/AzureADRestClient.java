@@ -42,7 +42,7 @@ public class AzureADRestClient {
                 TokenResponse.class
             );
         } catch (HttpClientErrorException | HttpServerErrorException exception) {
-            throw new TenpoException(exception, HttpStatus.UNPROCESSABLE_ENTITY, "ERR-CODE");
+            throw new TenpoException(exception, HttpStatus.UNPROCESSABLE_ENTITY, 9001);
         }
         return response.getBody();
     }
@@ -57,10 +57,10 @@ public class AzureADRestClient {
             );
         } catch (HttpServerErrorException exception) {
             log.error("HttoServerError", exception);
-            throw new TenpoException(exception, HttpStatus.UNPROCESSABLE_ENTITY, "Can't Connect");
+            throw new TenpoException(exception, HttpStatus.UNPROCESSABLE_ENTITY, 9001);
         }catch (HttpClientErrorException exception) {
             log.error("HttpClientError", exception);
-            throw new TenpoException(exception, HttpStatus.UNPROCESSABLE_ENTITY, "Can't login");
+            throw new TenpoException(exception, HttpStatus.UNPROCESSABLE_ENTITY, 9002);
         }
         return response.getBody();
     }

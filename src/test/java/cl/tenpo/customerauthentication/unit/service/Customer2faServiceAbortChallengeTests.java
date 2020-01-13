@@ -17,7 +17,6 @@ import cl.tenpo.customerauthentication.service.CustomerChallengeService;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -31,6 +30,7 @@ import java.util.UUID;
 
 import static cl.tenpo.customerauthentication.constants.ErrorCode.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
@@ -51,7 +51,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
     @Test(expected = TenpoException.class)
     public void abortChallengeExtenalNotFound(){
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.empty());
         try{
             AbortChallengeRequest abortChallengeRequest = new AbortChallengeRequest();
@@ -69,12 +69,12 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.AUTHORIZED);
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
             AbortChallengeRequest abortChallengeRequest = new AbortChallengeRequest();
-            abortChallengeRequest.setExternalId(UUID.randomUUID());
+            abortChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.abortChallenge(UUID.randomUUID(),abortChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -89,12 +89,12 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.EXPIRED);
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
             AbortChallengeRequest abortChallengeRequest = new AbortChallengeRequest();
-            abortChallengeRequest.setExternalId(UUID.randomUUID());
+            abortChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.abortChallenge(UUID.randomUUID(),abortChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -109,12 +109,12 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setCreated(LocalDateTime.now(ZoneId.of("UTC")).minusMinutes(transactionContextProperties.getExpirationTimeInMinutes() + 1));
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
             AbortChallengeRequest abortChallengeRequest = new AbortChallengeRequest();
-            abortChallengeRequest.setExternalId(UUID.randomUUID());
+            abortChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.abortChallenge(UUID.randomUUID(),abortChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -129,12 +129,12 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.REJECTED);
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
             AbortChallengeRequest abortChallengeRequest = new AbortChallengeRequest();
-            abortChallengeRequest.setExternalId(UUID.randomUUID());
+            abortChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.abortChallenge(UUID.randomUUID(),abortChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -150,12 +150,12 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.PENDING);
         customerTransactionContextDTO.setAttempts(transactionContextProperties.getPasswordAttempts() + 1);
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         try {
             AbortChallengeRequest abortChallengeRequest = new AbortChallengeRequest();
-            abortChallengeRequest.setExternalId(UUID.randomUUID());
+            abortChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.abortChallenge(UUID.randomUUID(),abortChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -168,7 +168,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     @Test(expected = TenpoException.class)
     public void abortChallengeUserRestClientThrowsException() {
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         when(userRestClient.getUser(any(UUID.class)))
@@ -176,7 +176,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
         try {
             AbortChallengeRequest abortChallengeRequest = new AbortChallengeRequest();
-            abortChallengeRequest.setExternalId(UUID.randomUUID());
+            abortChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.abortChallenge(UUID.randomUUID(),abortChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -189,7 +189,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     @Test(expected = TenpoException.class)
     public void abortChallengeUserNotFound() {
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         when(userRestClient.getUser(any(UUID.class)))
@@ -197,7 +197,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
         try {
             AbortChallengeRequest abortChallengeRequest = new AbortChallengeRequest();
-            abortChallengeRequest.setExternalId(UUID.randomUUID());
+            abortChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.abortChallenge(UUID.randomUUID(),abortChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -210,7 +210,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     @Test(expected = TenpoException.class)
     public void abortChallengeUserNoActive() {
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         UserResponse userResponse = new UserResponse();
@@ -222,7 +222,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
         try {
             AbortChallengeRequest abortChallengeRequest = new AbortChallengeRequest();
-            abortChallengeRequest.setExternalId(UUID.randomUUID());
+            abortChallengeRequest.setExternalId(UUID.randomUUID().toString());
             customer2faService.abortChallenge(UUID.randomUUID(),abortChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
@@ -235,7 +235,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     @Test
     public void abortChallengeOK() {
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         UserResponse userResponse = new UserResponse();
@@ -250,7 +250,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
         try {
             AbortChallengeRequest abortChallengeRequest = new AbortChallengeRequest();
-            abortChallengeRequest.setExternalId(UUID.randomUUID());
+            abortChallengeRequest.setExternalId(UUID.randomUUID().toString());
 
             AbortChallengeResponse response = customer2faService.abortChallenge(UUID.randomUUID(),abortChallengeRequest);
             Assert.assertEquals("Debe tener el mismo external id", customerTransactionContextDTO.getExternalId(), response.getExternalId());
@@ -266,7 +266,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     public void abortCancelledChallengeOK() {
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.CANCEL); // Challenge ya cancelado
-        when(customerChallengeService.findByExternalId(any(UUID.class)))
+        when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
 
         UserResponse userResponse = new UserResponse();
@@ -281,7 +281,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
         try {
             AbortChallengeRequest abortChallengeRequest = new AbortChallengeRequest();
-            abortChallengeRequest.setExternalId(UUID.randomUUID());
+            abortChallengeRequest.setExternalId(UUID.randomUUID().toString());
 
             AbortChallengeResponse response = customer2faService.abortChallenge(UUID.randomUUID(),abortChallengeRequest);
             Assert.assertEquals("Debe tener el mismo external id", customerTransactionContextDTO.getExternalId(), response.getExternalId());
@@ -295,7 +295,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
     private CustomerTransactionContextDTO createTransaction() {
         CustomerTransactionContextDTO customerTransactionContextDTO = new CustomerTransactionContextDTO();
-        customerTransactionContextDTO.setExternalId(UUID.randomUUID());
+        customerTransactionContextDTO.setExternalId(UUID.randomUUID().toString());
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.PENDING);
         customerTransactionContextDTO.setAttempts(0);
         customerTransactionContextDTO.setCreated(LocalDateTime.now(ZoneId.of("UTC")));

@@ -160,7 +160,7 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
     }
 
     @Override
-    public Optional<CustomerTransactionContextDTO> findByExternalId(UUID externalId) {
+    public Optional<CustomerTransactionContextDTO> findByExternalId(String externalId) {
         if(externalId == null){
             throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY,"1200","ExternalId  no puede ser null");
         }

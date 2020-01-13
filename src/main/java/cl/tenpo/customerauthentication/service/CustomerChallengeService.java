@@ -15,7 +15,7 @@ public interface CustomerChallengeService {
     NewCustomerChallenge createRequestedChallenge(UUID userId, CreateChallengeRequest createChallengeRequest);
     Optional<CustomerTransactionContextDTO> createTransactionContext(CustomerTransactionContextDTO CustomerTransactionContextDTO);
     Optional<CustomerChallengeDTO> createCustomerChallenge(CustomerChallengeDTO customerChallengeDTO);
-    Optional<CustomerTransactionContextDTO> findByExternalId(UUID externalId);
+    Optional<CustomerTransactionContextDTO> findByExternalId(String externalId);
     List<CustomerChallengeDTO> findChallengeByTrxId(UUID customerTrxId);
     Optional<CustomerTransactionContextDTO> updateTransactionContextStatus(UUID id, CustomerTransactionStatus status);
     Optional<CustomerTransactionContextDTO> addTransactionContextAttempt(UUID id);

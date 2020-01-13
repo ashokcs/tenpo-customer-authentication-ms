@@ -164,7 +164,11 @@ public class Customer2faServiceImpl implements Customer2faService {
 
         } else {
             //Aumenta numero de intentos y responde AUTH FAIL
-            customerChallengeService.addTransactionContextAttempt(customerTransactionContextDTO.get().getId());
+            customerTransactionContextDTO = customerChallengeService.addTransactionContextAttempt(customerTransactionContextDTO.get().getId());
+
+            // Verifica la cantidad de intentos y actualiza status de la trx
+            customerTransactionContextDTO.ifPresent(this::validateTransactionAttempts);
+
             return ValidateChallengeResponse.builder()
                     .result(ChallengeResult.AUTH_FALLIDA)
                     .externalId(customerTransactionContextDTO.get().getExternalId()).build();
@@ -301,6 +305,11 @@ public class Customer2faServiceImpl implements Customer2faService {
             throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, TRANSACTION_CONTEXT_EXPIRED);
         }
 
+        // Verifica numero de intentos de validar el codigo
+        validateTransactionAttempts(transactionContextDTO);
+    }
+
+    private void validateTransactionAttempts(CustomerTransactionContextDTO transactionContextDTO) {
         // Retorno cuando la trx fue rechazada por intentos
         if (transactionContextDTO.getStatus().equals(CustomerTransactionStatus.REJECTED)) {
             throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, BLOCKED_PASSWORD);

@@ -19,7 +19,7 @@ public class CustomerTransactionContextEntity {
     @Id
     private UUID id;
     private UUID userId;
-    private UUID externalId;
+    private String externalId;
     private String txType;
     private BigDecimal txAmount;
     private Integer txCurrency;
