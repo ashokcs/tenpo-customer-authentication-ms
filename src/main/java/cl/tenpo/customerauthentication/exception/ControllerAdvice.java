@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.MessageSource;
 import org.springframework.context.NoSuchMessageException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -35,6 +36,19 @@ public class ControllerAdvice {
         log.error(message, cause);
 
         return new ResponseEntity(errorResponse, ex.getCode());
+    }
+
+    @ExceptionHandler(value = { Exception.class})
+    @ResponseBody
+    protected ResponseEntity<Object> handleConflict(Exception ex) {
+        String traceId = getTraceIdFromNowDate();
+        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.setCode(500);
+        errorResponse.setMessage("Error Interno");
+        String message = String.format("%s [%s :: %s]", traceId, errorResponse.getCode(), errorResponse.getMessage());
+        log.error(message, cause);
+        return new ResponseEntity(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     private Integer getErrorCode(TenpoException exception) {
