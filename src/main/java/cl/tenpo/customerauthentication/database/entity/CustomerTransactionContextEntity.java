@@ -25,7 +25,6 @@ public class CustomerTransactionContextEntity {
     private Integer txCurrency;
     private String txMerchant;
     private Integer txCountryCode;
-    private String txPlaceName;
     private String txOther;
     @Enumerated(EnumType.STRING)
     private CustomerTransactionStatus status;

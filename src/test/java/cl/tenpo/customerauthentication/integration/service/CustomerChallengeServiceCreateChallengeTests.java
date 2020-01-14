@@ -91,7 +91,6 @@ public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthen
         Assert.assertEquals("Debe tener el currency enviado", createChallengeRequest.getTransactionContext().getTxAmount().getCurrencyCode(), transactionEntity.getTxCurrency());
         Assert.assertEquals("Debe tener el merchant enviado", createChallengeRequest.getTransactionContext().getTxMerchant(), transactionEntity.getTxMerchant());
         Assert.assertEquals("Debe tener el other enviado", createChallengeRequest.getTransactionContext().getTxOther(), transactionEntity.getTxOther());
-        Assert.assertEquals("Debe tener el placeName enviado", createChallengeRequest.getTransactionContext().getTxPlaceName(), transactionEntity.getTxPlaceName());
         Assert.assertEquals("Debe tener el countryCode enviado", createChallengeRequest.getTransactionContext().getTxCountryCode(), transactionEntity.getTxCountryCode());
         Assert.assertEquals("Debe tener status PENDING", CustomerTransactionStatus.PENDING, transactionEntity.getStatus());
 
@@ -134,7 +133,6 @@ public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthen
         Assert.assertEquals("Debe tener el currency enviado", createChallengeRequest.getTransactionContext().getTxAmount().getCurrencyCode(), transactionEntity.getTxCurrency());
         Assert.assertEquals("Debe tener el merchant enviado", createChallengeRequest.getTransactionContext().getTxMerchant(), transactionEntity.getTxMerchant());
         Assert.assertEquals("Debe tener el other enviado", createChallengeRequest.getTransactionContext().getTxOther(), transactionEntity.getTxOther());
-        Assert.assertEquals("Debe tener el placeName enviado", createChallengeRequest.getTransactionContext().getTxPlaceName(), transactionEntity.getTxPlaceName());
         Assert.assertEquals("Debe tener el countryCode enviado", createChallengeRequest.getTransactionContext().getTxCountryCode(), transactionEntity.getTxCountryCode());
         Assert.assertEquals("Debe tener status PENDING", CustomerTransactionStatus.PENDING, transactionEntity.getStatus());
 
@@ -401,7 +399,6 @@ public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthen
         savedTransactionEntity.setTxCurrency(createChallengeRequest.getTransactionContext().getTxAmount().getCurrencyCode());
         savedTransactionEntity.setTxMerchant(createChallengeRequest.getTransactionContext().getTxMerchant());
         savedTransactionEntity.setTxCountryCode(createChallengeRequest.getTransactionContext().getTxCountryCode());
-        savedTransactionEntity.setTxPlaceName(createChallengeRequest.getTransactionContext().getTxPlaceName());
         savedTransactionEntity.setTxOther(createChallengeRequest.getTransactionContext().getTxOther());
         savedTransactionEntity.setStatus(CustomerTransactionStatus.PENDING);
         savedTransactionEntity.setCreated(LocalDateTime.now(ZoneId.of("UTC")));
