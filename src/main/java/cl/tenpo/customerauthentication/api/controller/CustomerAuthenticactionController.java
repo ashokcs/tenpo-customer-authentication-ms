@@ -24,7 +24,7 @@ public class CustomerAuthenticactionController {
     @PostMapping(value = "/login")
     public ResponseEntity login(@RequestBody CustomerLoginRequest request) {
         log.info("[login] IN");
-        return ResponseEntity.ok(customer2faService.login(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(customer2faService.login(request));
     }
 
     @PostMapping(value="/2fa")
