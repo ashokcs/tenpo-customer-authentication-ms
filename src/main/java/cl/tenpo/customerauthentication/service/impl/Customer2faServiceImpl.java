@@ -73,6 +73,7 @@ public class Customer2faServiceImpl implements Customer2faService {
 
     @Override
     public TokenResponse login(CustomerLoginRequest request) {
+
         if (request.getEmail() == null || request.getEmail().isEmpty()) {
             throw new TenpoException(HttpStatus.BAD_REQUEST, MISSING_PARAMETERS);
         }
@@ -82,7 +83,9 @@ public class Customer2faServiceImpl implements Customer2faService {
         if (request.getPan() == null || request.getPan().isEmpty()) {
             throw new TenpoException(HttpStatus.BAD_REQUEST, MISSING_PARAMETERS);
         }
-
+        if(request.getEmail().equalsIgnoreCase("bloqueado@bloqueado.cl") && request.getClave().equalsIgnoreCase("1111")) {
+            throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, BLOCKED_PASSWORD);
+        }
         TokenResponse tokenResponse;
         Optional<UserResponse> userResponseDto;
         try {
