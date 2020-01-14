@@ -9,7 +9,6 @@ import cl.tenpo.customerauthentication.externalservice.azure.dto.TokenResponse;
 import cl.tenpo.customerauthentication.externalservice.cards.CardRestClient;
 import cl.tenpo.customerauthentication.properties.CustomerTransactionContextProperties;
 import cl.tenpo.customerauthentication.properties.NotificationMailProperties;
-import cl.tenpo.customerauthentication.constants.ErrorCode;
 import cl.tenpo.customerauthentication.database.repository.CustomerTransactionContextRespository;
 import cl.tenpo.customerauthentication.externalservice.notification.NotificationRestClient;
 import cl.tenpo.customerauthentication.externalservice.notification.dto.EmailDto;
@@ -77,7 +76,7 @@ public class Customer2faServiceImpl implements Customer2faService {
         if (request.getEmail() == null || request.getEmail().isEmpty()) {
             throw new TenpoException(HttpStatus.BAD_REQUEST, MISSING_PARAMETERS);
         }
-        if (request.getPassword() == null || request.getPassword().isEmpty()) {
+        if (request.getClave() == null || request.getClave().isEmpty()) {
             throw new TenpoException(HttpStatus.BAD_REQUEST, MISSING_PARAMETERS);
         }
         if (request.getPan() == null || request.getPan().isEmpty()) {
@@ -89,7 +88,7 @@ public class Customer2faServiceImpl implements Customer2faService {
         try {
             //Try Login in AZ AD
             log.info("[login] Try to login into azure ad");
-            tokenResponse = azureClient.loginUser(request.getEmail(),request.getPassword());
+            tokenResponse = azureClient.loginUser(request.getEmail(),request.getClave());
             log.info("[login] Login succes");
             JwtDTO jwtDTO = JwtUtil.parseJWT(tokenResponse.getAccessToken());
             log.info("[login] Token Parsed");
