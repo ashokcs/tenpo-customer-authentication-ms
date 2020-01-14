@@ -11,6 +11,6 @@ public class CustomerLoginRequest {
 
     private String rut;
     private String email;
-    private String password;
+    private String clave;
     private String pan;
 }

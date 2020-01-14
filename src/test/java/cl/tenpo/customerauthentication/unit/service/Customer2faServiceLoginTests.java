@@ -23,7 +23,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.HttpClientErrorException;
 
-import javax.swing.tree.ExpandVetoException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -52,7 +51,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
         CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
                 .email(null)
                 .pan("123456XXXXXX1234")
-                .password("1234")
+                .clave("1234")
                 .build();
 
         try {
@@ -69,7 +68,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
         CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
                 .email("")
                 .pan("123456XXXXXX1234")
-                .password("1234")
+                .clave("1234")
                 .build();
 
         try {
@@ -86,7 +85,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
         CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
                 .email("hola@mail.com")
                 .pan(null)
-                .password("1234")
+                .clave("1234")
                 .build();
 
         try {
@@ -103,7 +102,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
         CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
                 .email("hola@mail.com")
                 .pan("")
-                .password("1234")
+                .clave("1234")
                 .build();
 
         try {
@@ -120,7 +119,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
         CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
                 .email("hola@mail.com")
                 .pan("123456XXXXXX1234")
-                .password(null)
+                .clave(null)
                 .build();
 
         try {
@@ -137,7 +136,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
         CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
                 .email("hola@mail.com")
                 .pan("123456XXXXXX1234")
-                .password("")
+                .clave("")
                 .build();
 
         try {
@@ -157,7 +156,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
             customer2faService.login(CustomerLoginRequest
                     .builder()
                     .email("test@email.com")
-                    .password("1234")
+                    .clave("1234")
                     .pan("5555XXXXX55555")
                     .build());
             Assert.fail("Can't be here");
@@ -187,7 +186,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
             customer2faService.login(CustomerLoginRequest
                     .builder()
                     .email("test@email.com")
-                    .password("1234")
+                    .clave("1234")
                     .pan("5555XXXXX55555")
                     .build());
             Assert.fail("Can't be here");
@@ -217,7 +216,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
             customer2faService.login(CustomerLoginRequest
                     .builder()
                     .email("test@email.com")
-                    .password("1234")
+                    .clave("1234")
                     .pan("5555XXXXX55555")
                     .build());
             Assert.fail("Can't be here");
@@ -251,7 +250,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
             customer2faService.login(CustomerLoginRequest
                     .builder()
                     .email("test@email.com")
-                    .password("1234")
+                    .clave("1234")
                     .pan("5555XXXXX55555")
                     .build());
             Assert.fail("Can't be here");
@@ -284,7 +283,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
             customer2faService.login(CustomerLoginRequest
                     .builder()
                     .email("test@email.com")
-                    .password("1234")
+                    .clave("1234")
                     .pan("5555XXXXX55555")
                     .build());
         }catch (TenpoException e){
