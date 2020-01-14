@@ -37,7 +37,7 @@ public class CustomerAuthenticactionController {
     @PutMapping(value = "/2fa")
     public ResponseEntity validateChallenge(@RequestHeader("x-mine-user-id") UUID userId, @RequestBody ValidateChallengeRequest request) {
         log.info("[validateChallenge] IN");
-        return ResponseEntity.ok(customer2faService.validateChallenge(userId, request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(customer2faService.validateChallenge(userId, request));
     }
 
     @DeleteMapping(value = "/2fa")
