@@ -29,7 +29,6 @@ public class CustomerAuthenticationMsApplicationTests {
 		createChallengeRequest.setTransactionContext(TransactionContext.builder()
 				.txAmount(new AmountAndCurrency(new BigDecimal(RandomUtils.nextInt()),152))
 				.txCountryCode(152)
-				.txPlaceName("Santiago")
 				.txMerchant("Tenpito")
 				.txType("COMPRA")
 				.txOther("REFRIGERADOR LG 3342")

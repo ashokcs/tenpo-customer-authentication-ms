@@ -7,7 +7,6 @@ CREATE TABLE customer_transaction_context(
     tx_currency     INTEGER NOT NULL,
     tx_merchant     VARCHAR(100) NOT NULL,
     tx_country_code INTEGER NOT NULL,
-    tx_place_name   VARCHAR(100) NOT NULL,
     tx_other        VARCHAR(200) NOT NULL,
     status          VARCHAR(20) NOT NULL,
     created         TIMESTAMP NOT NULL,

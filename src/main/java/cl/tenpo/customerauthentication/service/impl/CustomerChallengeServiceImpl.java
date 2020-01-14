@@ -72,7 +72,6 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
                     .txCurrency(createChallengeRequest.getTransactionContext().getTxAmount().getCurrencyCode())
                     .txMerchant(createChallengeRequest.getTransactionContext().getTxMerchant())
                     .txOther(createChallengeRequest.getTransactionContext().getTxOther())
-                    .txPlaceName(createChallengeRequest.getTransactionContext().getTxPlaceName())
                     .txCountryCode(createChallengeRequest.getTransactionContext().getTxCountryCode())
                     .status(CustomerTransactionStatus.PENDING)
                     .attempts(0)

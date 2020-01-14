@@ -13,6 +13,5 @@ public class TransactionContext {
     private AmountAndCurrency txAmount;
     private String txMerchant;
     private Integer txCountryCode;
-    private String txPlaceName;
     private String txOther;
 }
