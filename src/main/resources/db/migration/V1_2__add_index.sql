@@ -1,2 +1,2 @@
 
-CREATE INDEX customer_transaction_context_i1 ON customer_transaction_context(externalId);
+CREATE INDEX customer_transaction_context_i1 ON customer_transaction_context(external_id);
