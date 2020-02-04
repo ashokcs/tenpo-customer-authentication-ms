@@ -88,6 +88,20 @@ docker_prod:
   only:
     - master
 
+dev_kiuwan_analysis:
+  stage: build
+  image: registry.gitlab.com/tenpo/devsecops/security/kiuwan-agent:latest
+  variables:
+    KIUWAN_USER: $KIUWAN_USER #Kiuwan user name (globally scoped)
+    KIUWAN_PASSWORD: $KIUWAN_PASSWORD #Kiuwan password (globally scoped)
+    PROJECT_NAME: $CI_PROJECT_NAME #Current project name (automatically initialized by Gitlab CI)
+    TARGET_DIR: $CI_PROJECT_DIR #Current working directory (automatically initialized by Gitlab CI)
+    BUILD_ID: $CI_JOB_ID #Current project job ID (automatically initialized by Gitlab CI)
+  script:
+    - baseline
+  only:
+    - develop
+
 dev_deployment:
   stage: deploy
   image: registry.gitlab.com/krealomine/deploy_k8s_azure:latest
