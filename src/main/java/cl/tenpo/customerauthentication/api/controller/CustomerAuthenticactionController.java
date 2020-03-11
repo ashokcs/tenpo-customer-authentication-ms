@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.text.ParseException;
 import java.util.UUID;
 
 @RestController
@@ -22,7 +24,7 @@ public class CustomerAuthenticactionController {
     private Customer2faService customer2faService;
 
     @PostMapping(value = "/login")
-    public ResponseEntity login(@RequestBody CustomerLoginRequest request) {
+    public ResponseEntity login(@RequestBody CustomerLoginRequest request) throws IOException, ParseException {
         log.info("[login] IN");
         return ResponseEntity.status(HttpStatus.CREATED).body(customer2faService.login(request));
     }

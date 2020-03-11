@@ -10,9 +10,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties(prefix = "krealo.cloud")
 public class CloudProps {
+
     private AccountsProps accounts;
     private NotificationsProps notifications;
     private UsersProps users;
     private CardsProps cards;
     private VerifierProps verifier;
+    private LoginProps login;
 }
