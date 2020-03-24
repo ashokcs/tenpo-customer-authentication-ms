@@ -76,7 +76,7 @@ metadata:
   namespace: customer-authentication
 spec:
   type: ExternalName
-  externalName: login-ms.default.svc.cluster.local
+  externalName: login-ms.tenpo-login.svc.cluster.local
   ports:
     - port: 8080
 ---
