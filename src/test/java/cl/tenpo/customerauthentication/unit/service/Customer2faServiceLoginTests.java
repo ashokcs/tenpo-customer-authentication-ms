@@ -3,11 +3,12 @@ package cl.tenpo.customerauthentication.unit.service;
 
 import cl.tenpo.customerauthentication.CustomerAuthenticationMsApplicationTests;
 import cl.tenpo.customerauthentication.api.dto.CustomerLoginRequest;
-import cl.tenpo.customerauthentication.component.AzureClient;
 import cl.tenpo.customerauthentication.constants.ErrorCode;
 import cl.tenpo.customerauthentication.exception.TenpoException;
-import cl.tenpo.customerauthentication.externalservice.azure.dto.TokenResponse;
 import cl.tenpo.customerauthentication.externalservice.cards.CardRestClient;
+import cl.tenpo.customerauthentication.externalservice.login.LoginRestClient;
+import cl.tenpo.customerauthentication.externalservice.login.dto.LoginRequestDTO;
+import cl.tenpo.customerauthentication.externalservice.login.dto.LoginResponseDTO;
 import cl.tenpo.customerauthentication.externalservice.user.UserRestClient;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserResponse;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserStateType;
@@ -23,10 +24,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.io.IOException;
+import java.text.ParseException;
 import java.util.Optional;
 import java.util.UUID;
 
-import static cl.tenpo.customerauthentication.constants.ErrorCode.*;
+import static cl.tenpo.customerauthentication.constants.ErrorCode.INVALID_CREDENTIALS;
+import static cl.tenpo.customerauthentication.constants.ErrorCode.INVALID_PAN;
 import static org.mockito.Mockito.*;
 
 
@@ -38,7 +42,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
     private Customer2faService customer2faService;
 
     @MockBean
-    private AzureClient azureClient;
+    private LoginRestClient loginRestClient;
 
     @MockBean
     private UserRestClient userRestClient;
@@ -47,7 +51,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
     private CardRestClient cardRestClient;
 
     @Test(expected = TenpoException.class)
-    public void login_WhenEmailNull_ThenThrowsException() {
+    public void login_WhenEmailNull_ThenThrowsException() throws IOException, ParseException {
         CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
                 .email(null)
                 .pan("123456XXXXXX1234")
@@ -64,7 +68,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
     }
 
     @Test(expected = TenpoException.class)
-    public void login_WhenEmailEmpty_ThenThrowsException() {
+    public void login_WhenEmailEmpty_ThenThrowsException() throws IOException, ParseException {
         CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
                 .email("")
                 .pan("123456XXXXXX1234")
@@ -81,7 +85,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
     }
 
     @Test(expected = TenpoException.class)
-    public void login_WhenPanNull_ThenThrowsException() {
+    public void login_WhenPanNull_ThenThrowsException() throws IOException, ParseException {
         CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
                 .email("hola@mail.com")
                 .pan(null)
@@ -98,7 +102,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
     }
 
     @Test(expected = TenpoException.class)
-    public void login_WhenPanEmpty_ThenThrowsException() {
+    public void login_WhenPanEmpty_ThenThrowsException() throws IOException, ParseException {
         CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
                 .email("hola@mail.com")
                 .pan("")
@@ -115,7 +119,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
     }
 
     @Test(expected = TenpoException.class)
-    public void login_WhenPasswordNull_ThenThrowsException() {
+    public void login_WhenPasswordNull_ThenThrowsException() throws IOException, ParseException {
         CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
                 .email("hola@mail.com")
                 .pan("123456XXXXXX1234")
@@ -132,7 +136,7 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
     }
 
     @Test(expected = TenpoException.class)
-    public void login_WhenPasswordEmpty_ThenThrowsException() {
+    public void login_WhenPasswordEmpty_ThenThrowsException() throws IOException, ParseException {
         CustomerLoginRequest customerLoginRequest = CustomerLoginRequest.builder()
                 .email("hola@mail.com")
                 .pan("123456XXXXXX1234")
@@ -149,9 +153,10 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
     }
 
     @Test(expected = TenpoException.class)
-    public void loginErrorAzureLogin() {
-        when(azureClient.loginUser(Mockito.anyString(),Mockito.anyString()))
-                .thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND));
+    public void loginErrorAzureLogin() throws IOException, ParseException {
+
+        when(loginRestClient.login(Mockito.any(LoginRequestDTO.class)))
+                .thenThrow(new TenpoException(HttpStatus.NOT_FOUND,INVALID_CREDENTIALS));
         try {
             customer2faService.login(CustomerLoginRequest
                     .builder()
@@ -169,11 +174,11 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
     }
 
     @Test(expected = TenpoException.class)
-    public void loginErrorUserLocked() {
+    public void loginErrorUserLocked() throws IOException, ParseException {
 
-        TokenResponse tokenResponse = new TokenResponse();
+        LoginResponseDTO tokenResponse = new LoginResponseDTO();
         tokenResponse.setAccessToken("eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Ilg1ZVhrNHh5b2pORnVtMWtsMll0djhkbE5QNC1jNTdkTzZRR1RWQndhTmsifQ.eyJpc3MiOiJodHRwczovL3RlbnBvZGV2Mi5iMmNsb2dpbi5jb20vY2FlMDlmZWUtNDczZS00OGUyLTk5ZGMtM2I3YmY0YTk3NDExL3YyLjAvIiwiZXhwIjoxNTc3NzEzMTI1LCJuYmYiOjE1Nzc3MTI4MjUsImF1ZCI6IjNiMWI3MTMzLTM4OWYtNGUxYi04MTE3LTI3YjdiYWY2ZGZkMiIsImlkcCI6IkxvY2FsQWNjb3VudCIsIm9pZCI6IjAzZjdlMGNkLWEzMDUtNGUyNC1hODA2LTE0MzhiZWI2ZmRhYiIsInN1YiI6IjAzZjdlMGNkLWEzMDUtNGUyNC1hODA2LTE0MzhiZWI2ZmRhYiIsIm5hbWUiOiJCQVNUSUFOIEhFUk5BTkRFWiBXSUxTT04iLCJlbWFpbHMiOlsiYmFzdGlhbi5oZXJuYW5kZXpAdGVucG8uY2wiXSwidGZwIjoiQjJDXzFfd2VicGF5IiwiYXpwIjoiM2IxYjcxMzMtMzg5Zi00ZTFiLTgxMTctMjdiN2JhZjZkZmQyIiwidmVyIjoiMS4wIiwiaWF0IjoxNTc3NzEyODI1fQ.sKtw2dfAFlHi1PW3jnKeKxbVQXNwqwJ_7ar_cDMs74ltOXHJ0jXytW3S-EObbyLYMgfIW1cnEw_xcyVq5dK1hXvr0nhLt2UEM4t7drrciPaOpMF5uNKNlW6u2zfb963RdPBcAAzRk3Zl11aE0PBrjEzG7RV1ZkX79QYp4H_-j0-kriQ42Pj05d8lK8-79aamSAgfiBGcjBUHPecYOwxvURCK76Zf6YvKRagIUylIQA7lJTP5VuVho6U4kJAOzjoEJqLLgvySiYuA5h6Jm3EDWRQfXUE_7vfkBuSmUwoYQZcEYkGJrcZOsZ8RhLrcIXsYZeudxeGhvFugF9zt3VYgpQ");
-        when(azureClient.loginUser(Mockito.anyString(),Mockito.anyString()))
+        when(loginRestClient.login(Mockito.any(LoginRequestDTO.class)))
                 .thenReturn(tokenResponse);
 
         UserResponse userResponse = new UserResponse();
@@ -199,11 +204,11 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
     }
 
     @Test(expected = TenpoException.class)
-    public void loginErrorUserLocked2() {
+    public void loginErrorUserLocked2() throws IOException, ParseException {
 
-        TokenResponse tokenResponse = new TokenResponse();
+        LoginResponseDTO tokenResponse = new LoginResponseDTO();
         tokenResponse.setAccessToken("eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Ilg1ZVhrNHh5b2pORnVtMWtsMll0djhkbE5QNC1jNTdkTzZRR1RWQndhTmsifQ.eyJpc3MiOiJodHRwczovL3RlbnBvZGV2Mi5iMmNsb2dpbi5jb20vY2FlMDlmZWUtNDczZS00OGUyLTk5ZGMtM2I3YmY0YTk3NDExL3YyLjAvIiwiZXhwIjoxNTc3NzEzMTI1LCJuYmYiOjE1Nzc3MTI4MjUsImF1ZCI6IjNiMWI3MTMzLTM4OWYtNGUxYi04MTE3LTI3YjdiYWY2ZGZkMiIsImlkcCI6IkxvY2FsQWNjb3VudCIsIm9pZCI6IjAzZjdlMGNkLWEzMDUtNGUyNC1hODA2LTE0MzhiZWI2ZmRhYiIsInN1YiI6IjAzZjdlMGNkLWEzMDUtNGUyNC1hODA2LTE0MzhiZWI2ZmRhYiIsIm5hbWUiOiJCQVNUSUFOIEhFUk5BTkRFWiBXSUxTT04iLCJlbWFpbHMiOlsiYmFzdGlhbi5oZXJuYW5kZXpAdGVucG8uY2wiXSwidGZwIjoiQjJDXzFfd2VicGF5IiwiYXpwIjoiM2IxYjcxMzMtMzg5Zi00ZTFiLTgxMTctMjdiN2JhZjZkZmQyIiwidmVyIjoiMS4wIiwiaWF0IjoxNTc3NzEyODI1fQ.sKtw2dfAFlHi1PW3jnKeKxbVQXNwqwJ_7ar_cDMs74ltOXHJ0jXytW3S-EObbyLYMgfIW1cnEw_xcyVq5dK1hXvr0nhLt2UEM4t7drrciPaOpMF5uNKNlW6u2zfb963RdPBcAAzRk3Zl11aE0PBrjEzG7RV1ZkX79QYp4H_-j0-kriQ42Pj05d8lK8-79aamSAgfiBGcjBUHPecYOwxvURCK76Zf6YvKRagIUylIQA7lJTP5VuVho6U4kJAOzjoEJqLLgvySiYuA5h6Jm3EDWRQfXUE_7vfkBuSmUwoYQZcEYkGJrcZOsZ8RhLrcIXsYZeudxeGhvFugF9zt3VYgpQ");
-        when(azureClient.loginUser(Mockito.anyString(),Mockito.anyString()))
+        when(loginRestClient.login(Mockito.any(LoginRequestDTO.class)))
                 .thenReturn(tokenResponse);
 
         UserResponse userResponse = new UserResponse();
@@ -229,11 +234,11 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
     }
 
     @Test(expected = TenpoException.class)
-    public void loginErrorCardNotFound() {
+    public void loginErrorCardNotFound() throws IOException, ParseException {
 
-        TokenResponse tokenResponse = new TokenResponse();
+        LoginResponseDTO tokenResponse = new LoginResponseDTO();
         tokenResponse.setAccessToken("eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Ilg1ZVhrNHh5b2pORnVtMWtsMll0djhkbE5QNC1jNTdkTzZRR1RWQndhTmsifQ.eyJpc3MiOiJodHRwczovL3RlbnBvZGV2Mi5iMmNsb2dpbi5jb20vY2FlMDlmZWUtNDczZS00OGUyLTk5ZGMtM2I3YmY0YTk3NDExL3YyLjAvIiwiZXhwIjoxNTc3NzEzMTI1LCJuYmYiOjE1Nzc3MTI4MjUsImF1ZCI6IjNiMWI3MTMzLTM4OWYtNGUxYi04MTE3LTI3YjdiYWY2ZGZkMiIsImlkcCI6IkxvY2FsQWNjb3VudCIsIm9pZCI6IjAzZjdlMGNkLWEzMDUtNGUyNC1hODA2LTE0MzhiZWI2ZmRhYiIsInN1YiI6IjAzZjdlMGNkLWEzMDUtNGUyNC1hODA2LTE0MzhiZWI2ZmRhYiIsIm5hbWUiOiJCQVNUSUFOIEhFUk5BTkRFWiBXSUxTT04iLCJlbWFpbHMiOlsiYmFzdGlhbi5oZXJuYW5kZXpAdGVucG8uY2wiXSwidGZwIjoiQjJDXzFfd2VicGF5IiwiYXpwIjoiM2IxYjcxMzMtMzg5Zi00ZTFiLTgxMTctMjdiN2JhZjZkZmQyIiwidmVyIjoiMS4wIiwiaWF0IjoxNTc3NzEyODI1fQ.sKtw2dfAFlHi1PW3jnKeKxbVQXNwqwJ_7ar_cDMs74ltOXHJ0jXytW3S-EObbyLYMgfIW1cnEw_xcyVq5dK1hXvr0nhLt2UEM4t7drrciPaOpMF5uNKNlW6u2zfb963RdPBcAAzRk3Zl11aE0PBrjEzG7RV1ZkX79QYp4H_-j0-kriQ42Pj05d8lK8-79aamSAgfiBGcjBUHPecYOwxvURCK76Zf6YvKRagIUylIQA7lJTP5VuVho6U4kJAOzjoEJqLLgvySiYuA5h6Jm3EDWRQfXUE_7vfkBuSmUwoYQZcEYkGJrcZOsZ8RhLrcIXsYZeudxeGhvFugF9zt3VYgpQ");
-        when(azureClient.loginUser(Mockito.anyString(),Mockito.anyString()))
+        when(loginRestClient.login(Mockito.any(LoginRequestDTO.class)))
                 .thenReturn(tokenResponse);
 
         UserResponse userResponse = new UserResponse();
@@ -263,10 +268,10 @@ public class Customer2faServiceLoginTests extends CustomerAuthenticationMsApplic
     }
 
     @Test
-    public void login(){
-        TokenResponse tokenResponse = new TokenResponse();
+    public void login() throws IOException, ParseException {
+        LoginResponseDTO tokenResponse = new LoginResponseDTO();
         tokenResponse.setAccessToken("eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Ilg1ZVhrNHh5b2pORnVtMWtsMll0djhkbE5QNC1jNTdkTzZRR1RWQndhTmsifQ.eyJpc3MiOiJodHRwczovL3RlbnBvZGV2Mi5iMmNsb2dpbi5jb20vY2FlMDlmZWUtNDczZS00OGUyLTk5ZGMtM2I3YmY0YTk3NDExL3YyLjAvIiwiZXhwIjoxNTc3NzEzMTI1LCJuYmYiOjE1Nzc3MTI4MjUsImF1ZCI6IjNiMWI3MTMzLTM4OWYtNGUxYi04MTE3LTI3YjdiYWY2ZGZkMiIsImlkcCI6IkxvY2FsQWNjb3VudCIsIm9pZCI6IjAzZjdlMGNkLWEzMDUtNGUyNC1hODA2LTE0MzhiZWI2ZmRhYiIsInN1YiI6IjAzZjdlMGNkLWEzMDUtNGUyNC1hODA2LTE0MzhiZWI2ZmRhYiIsIm5hbWUiOiJCQVNUSUFOIEhFUk5BTkRFWiBXSUxTT04iLCJlbWFpbHMiOlsiYmFzdGlhbi5oZXJuYW5kZXpAdGVucG8uY2wiXSwidGZwIjoiQjJDXzFfd2VicGF5IiwiYXpwIjoiM2IxYjcxMzMtMzg5Zi00ZTFiLTgxMTctMjdiN2JhZjZkZmQyIiwidmVyIjoiMS4wIiwiaWF0IjoxNTc3NzEyODI1fQ.sKtw2dfAFlHi1PW3jnKeKxbVQXNwqwJ_7ar_cDMs74ltOXHJ0jXytW3S-EObbyLYMgfIW1cnEw_xcyVq5dK1hXvr0nhLt2UEM4t7drrciPaOpMF5uNKNlW6u2zfb963RdPBcAAzRk3Zl11aE0PBrjEzG7RV1ZkX79QYp4H_-j0-kriQ42Pj05d8lK8-79aamSAgfiBGcjBUHPecYOwxvURCK76Zf6YvKRagIUylIQA7lJTP5VuVho6U4kJAOzjoEJqLLgvySiYuA5h6Jm3EDWRQfXUE_7vfkBuSmUwoYQZcEYkGJrcZOsZ8RhLrcIXsYZeudxeGhvFugF9zt3VYgpQ");
-        when(azureClient.loginUser(Mockito.anyString(),Mockito.anyString()))
+        when(loginRestClient.login(Mockito.any(LoginRequestDTO.class)))
                 .thenReturn(tokenResponse);
 
         UserResponse userResponse = new UserResponse();

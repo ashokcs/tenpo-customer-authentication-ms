@@ -1,5 +1,5 @@
 server:
-    port: 8088
+    port: 8090
     pattern:
         level: '%X{traceId} %5p'
 spring:
@@ -24,48 +24,12 @@ spring:
                     lob:
                         non_contextual_creation: true
         show-sql: false
-    kafka:
-        bootstrap-servers: 137.116.88.31:9092
-        consumer:
-            group-id: customer-authentication
-cloud:
-    azure:
-        tenantId: cae09fee-473e-48e2-99dc-3b7bf4a97411
-        tenantName: tenpodev2.onmicrosoft.com
-        version: 1.6
-        clientId: 3b1b7133-389f-4e1b-8117-27b7baf6dfd2
-        clientSecret: MkNvSzBhdzQtQUNZM3dvWHFaRFtbQkdbOVBMcmdlRkA=
-        userUrl: https://tenpodev2.b2clogin.com
-        userFlowName: B2C_1_webpay
-        blobStorageConnectionString: 'DefaultEndpointsProtocol=https;AccountName=tenpodevstorageaccount;AccountKey=vsKf9z2VVaM7vUdEUjn4VtEMha8n5oheGOP+dX4FhuXET/D6SfzSlVnDe3GtGoJ6qTEZTTBit5Ks8ak1vrDBOw=='
-        blobStorageContainerName: tenpodevstoragecontainer
-        api-graph:
-            base-url: https://graph.windows.net
-            getAccessTokenResourcePath: https://login.microsoftonline.com/${cloud.azure.tenantId}/oauth2/v2.0/token
-            getLoginAccessTokenResourcePath: https://tenpodev2.b2clogin.com/${cloud.azure.tenantId}/oauth2/v2.0/token?p=${cloud.azure.userFlowName}
-            userMaintenanceResourcePath: ${cloud.azure.api-graph.base-url}/${cloud.azure.tenantId}/users
-            changePasswordResourcePath: ${cloud.azure.api-graph.base-url}/${cloud.azure.tenantId}/users
-            resetPasswordResourcePath: ${cloud.azure.api-graph.base-url}/${cloud.azure.tenantId}/users
 krealo:
+    cloud:
+        login:
+            baseUrl: http://refund-ms:8080
+            loginPath: https://api.dev.tenpo.cl/public/v1/login-management/login
+            apiKey: eb7e449eb04f4fefb621d460afdc1fa5
     security:
         disabledFor:
             - /**
-    cloud:
-        version: v1
-        users:
-            baseUrl: http://user-ms:8080
-            getUserByIdResourcePath: ${krealo.cloud.users.baseUrl}/${krealo.cloud.version}/user-management/users/{userId}
-            getUserByProvider: ${krealo.cloud.users.baseUrl}/${krealo.cloud.version}/user-management/identity-provider/{provider}/me
-        notifications:
-            baseUrl: http://52.179.169.65:8080
-            sendCreateNotificationSettingResourcePath: ${krealo.cloud.notifications.baseUrl}/${krealo.cloud.version}/customer-management/notification_setting/{userId}/configuration
-            sendEmailNotificationResourcePath: ${krealo.cloud.notifications.baseUrl}/${krealo.cloud.version}/customer-management/notification/email
-            sendNotificationResourcePath: ${krealo.cloud.notifications.baseUrl}/${krealo.cloud.version}/customer-management/notification/internal
-            sendGenericEmailResourcePath: ${krealo.cloud.notifications.baseUrl}/${krealo.cloud.version}/customer-management/notification/email/generic
-        cards:
-            baseUrl: http://cards-ms:8080
-            checkIfCardBelongsToUser: ${krealo.cloud.cards.baseUrl}/${krealo.cloud.version}/cards-management/cards/check-card
-        verifier:
-            baseUrl: http://40.123.30.130:8080
-            generateTwoFactorResourcePath: ${krealo.cloud.verifier.baseUrl}/${krealo.cloud.version}/account-management/accounts/{userId}/two-factor/generate-code
-            validateTwoFactorCodeResourcePath: ${krealo.cloud.verifier.baseUrl}/${krealo.cloud.version}/account-management/accounts/{userId}/two-factor/validate-code/{code}

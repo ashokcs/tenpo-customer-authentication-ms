@@ -15,5 +15,6 @@ public final class ErrorCode {
     public static final Integer TRANSACTION_CONTEXT_EXPIRED = 1200;
     public static final Integer TRANSACTION_CONTEXT_CANCELED = 1201;
     public static final Integer TRANSACTION_CONTEXT_CLOSED = 1202;
+    public static final Integer CONNECTION_ERROR = 501;
     public static final Integer INTERNAL_ERROR = 500;
 }

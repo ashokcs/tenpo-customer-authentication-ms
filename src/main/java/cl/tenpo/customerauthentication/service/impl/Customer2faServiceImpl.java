@@ -1,15 +1,14 @@
 package cl.tenpo.customerauthentication.service.impl;
 
 import cl.tenpo.customerauthentication.api.dto.*;
-import cl.tenpo.customerauthentication.component.AzureClient;
+import cl.tenpo.customerauthentication.database.repository.CustomerTransactionContextRespository;
 import cl.tenpo.customerauthentication.dto.CustomerTransactionContextDTO;
 import cl.tenpo.customerauthentication.dto.JwtDTO;
 import cl.tenpo.customerauthentication.exception.TenpoException;
-import cl.tenpo.customerauthentication.externalservice.azure.dto.TokenResponse;
 import cl.tenpo.customerauthentication.externalservice.cards.CardRestClient;
-import cl.tenpo.customerauthentication.properties.CustomerTransactionContextProperties;
-import cl.tenpo.customerauthentication.properties.NotificationMailProperties;
-import cl.tenpo.customerauthentication.database.repository.CustomerTransactionContextRespository;
+import cl.tenpo.customerauthentication.externalservice.login.LoginRestClient;
+import cl.tenpo.customerauthentication.externalservice.login.dto.LoginRequestDTO;
+import cl.tenpo.customerauthentication.externalservice.login.dto.LoginResponseDTO;
 import cl.tenpo.customerauthentication.externalservice.notification.NotificationRestClient;
 import cl.tenpo.customerauthentication.externalservice.notification.dto.EmailDto;
 import cl.tenpo.customerauthentication.externalservice.notification.dto.NotificationEventType;
@@ -22,6 +21,8 @@ import cl.tenpo.customerauthentication.model.ChallengeResult;
 import cl.tenpo.customerauthentication.model.ChallengeType;
 import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
 import cl.tenpo.customerauthentication.model.NewCustomerChallenge;
+import cl.tenpo.customerauthentication.properties.CustomerTransactionContextProperties;
+import cl.tenpo.customerauthentication.properties.NotificationMailProperties;
 import cl.tenpo.customerauthentication.service.Customer2faService;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
 import cl.tenpo.customerauthentication.util.JwtUtil;
@@ -30,6 +31,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -43,9 +46,6 @@ import static cl.tenpo.customerauthentication.externalservice.notification.dto.M
 @Service
 @Slf4j
 public class Customer2faServiceImpl implements Customer2faService {
-
-    @Autowired
-    private AzureClient azureClient;
 
     @Autowired
     private UserRestClient userRestClient;
@@ -71,8 +71,12 @@ public class Customer2faServiceImpl implements Customer2faService {
     @Autowired
     private CustomerTransactionContextProperties transactionContextProperties;
 
+    @Autowired
+    private LoginRestClient loginRestClient;
+
+
     @Override
-    public TokenResponse login(CustomerLoginRequest request) {
+    public LoginResponseDTO login(CustomerLoginRequest request) throws IOException, ParseException {
 
         if (request.getEmail() == null || request.getEmail().isEmpty()) {
             throw new TenpoException(HttpStatus.BAD_REQUEST, MISSING_PARAMETERS);
@@ -86,34 +90,29 @@ public class Customer2faServiceImpl implements Customer2faService {
         if(request.getEmail().equalsIgnoreCase("bloqueado@bloqueado.cl") && request.getClave().equalsIgnoreCase("1111")) {
             throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, BLOCKED_PASSWORD);
         }
-        TokenResponse tokenResponse;
-        Optional<UserResponse> userResponseDto;
-        try {
-            //Try Login in AZ AD
-            log.info("[login] Try to login into azure ad");
-            tokenResponse = azureClient.loginUser(request.getEmail(),request.getClave());
-            log.info("[login] Login succes");
-            JwtDTO jwtDTO = JwtUtil.parseJWT(tokenResponse.getAccessToken());
-            log.info("[login] Token Parsed");
-            userResponseDto = userRestClient.getUserByProvider(jwtDTO.getOid());
-            log.info("[login] Find User by provider");
-            // Verificacion de usuario
-            if(userResponseDto.isPresent()) {
-               if(!userResponseDto.get().getState().equals(UserStateType.ACTIVE)) {
-                   log.error("[login] Cliente no activo");
-                   throw new TenpoException(HttpStatus.NOT_FOUND, INVALID_CREDENTIALS);
-               }
-            }else {
-                log.error("[login] Usuario no existe");
-                throw new TenpoException(HttpStatus.NOT_FOUND, INVALID_CREDENTIALS);
-            }
-        } catch (Exception e){
-            log.error("[login] Error login on Azure AD");
+        //Try Login in AZ AD
+        log.info("[login] Try to login into azure ad");
+        LoginResponseDTO tokenResponse = loginRestClient.login(LoginRequestDTO.builder()
+                .email(request.getEmail())
+                .password(request.getClave())
+                .app("WEBPAY")
+                .build());
+        log.info("[login] Login succes");
+        JwtDTO jwtDTO = JwtUtil.parseJWT(tokenResponse.getAccessToken());
+        log.info("[login] Token Parsed");
+        UserResponse userResponseDto = userRestClient.getUserByProvider(jwtDTO.getOid())
+                .orElseThrow(() -> new TenpoException(HttpStatus.NOT_FOUND, INVALID_CREDENTIALS));
+
+        log.info("[login] Find User by provider");
+        // Verificacion de usuario
+
+        if(!userResponseDto.getState().equals(UserStateType.ACTIVE)) {
+            log.error("[login] Cliente no activo");
             throw new TenpoException(HttpStatus.NOT_FOUND, INVALID_CREDENTIALS);
         }
         // Si la verificac
         log.info("[login] Tarjeta verifica tarjeta");
-        cardRestClient.checkIfCardBelongsToUser(userResponseDto.get().getId(),request.getPan());
+        cardRestClient.checkIfCardBelongsToUser(userResponseDto.getId(),request.getPan());
         log.info("[login] User+Pan OK");
         return tokenResponse;
     }
@@ -180,25 +179,22 @@ public class Customer2faServiceImpl implements Customer2faService {
     @Override
     public AbortChallengeResponse abortChallenge(UUID userId, AbortChallengeRequest request) {
 
-        Optional<CustomerTransactionContextDTO> customerTransactionContextDTO = customerChallengeService.findByExternalId(request.getExternalId());
-        if(!customerTransactionContextDTO.isPresent()){
-            log.error("[abortResponse] No se encontró el external_id. Llame primero a POST");
-            throw new TenpoException(HttpStatus.NOT_FOUND, EXTERNAL_ID_NOT_FOUND);
-        }
-
-        // Valida el estado de la trx, excepto si ya esta cancelada
-        validateTransactionContextStatus(customerTransactionContextDTO.get(), false);
-        log.info("[abortResponse] Transaccion validada: [{}]", customerTransactionContextDTO.get().getId());
+        CustomerTransactionContextDTO customerTransactionContextDTO = customerChallengeService.findByExternalId(request.getExternalId())
+                .orElseThrow(() -> new TenpoException(HttpStatus.NOT_FOUND, EXTERNAL_ID_NOT_FOUND));
+               // Valida el estado de la trx, excepto si ya esta cancelada
+        validateTransactionContextStatus(customerTransactionContextDTO, false);
+        log.info("[abortResponse] Transaccion validada: [{}]", customerTransactionContextDTO.getId());
 
         // Validar que el usuario no esta bloqueado
         UserResponse userResponse = getAndValidateUser(userId);
         log.info("[abortResponse] Usuario validado: [{}]", userResponse.getTributaryIdentifier());
 
         // Marcar estado como cancelado
-        customerTransactionContextDTO = customerChallengeService.updateTransactionContextStatus(customerTransactionContextDTO.get().getId(), CustomerTransactionStatus.CANCEL);
+        customerTransactionContextDTO = customerChallengeService.updateTransactionContextStatus(customerTransactionContextDTO.getId(), CustomerTransactionStatus.CANCEL)
+                .orElseThrow(() -> new TenpoException(HttpStatus.NOT_FOUND, EXTERNAL_ID_NOT_FOUND));
 
         return AbortChallengeResponse.builder()
-               .externalId(customerTransactionContextDTO.get().getExternalId())
+               .externalId(customerTransactionContextDTO.getExternalId())
                .result(ChallengeResult.CANCELADO)
                .build();
     }
