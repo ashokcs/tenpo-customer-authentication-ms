@@ -8,6 +8,5 @@ import lombok.Setter;
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class LoginProps {
-    private String getLoginPath;
-    private String getApiKey;
+    private String loginPath;
 }

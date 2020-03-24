@@ -1,5 +1,5 @@
 server:
-    port: 8088
+    port: 8090
     pattern:
         level: '%X{traceId} %5p'
 spring:
@@ -25,6 +25,11 @@ spring:
                         non_contextual_creation: true
         show-sql: false
 krealo:
+    cloud:
+        login:
+            baseUrl: http://refund-ms:8080
+            loginPath: https://api.dev.tenpo.cl/public/v1/login-management/login
+            apiKey: eb7e449eb04f4fefb621d460afdc1fa5
     security:
         disabledFor:
             - /**

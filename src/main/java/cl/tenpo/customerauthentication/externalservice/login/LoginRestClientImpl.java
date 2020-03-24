@@ -33,7 +33,7 @@ public class LoginRestClientImpl implements LoginRestClient {
         ResponseEntity<LoginResponseDTO> response;
         try {
             HttpEntity<LoginRequestDTO> entity = new HttpEntity<>(loginRequestDTO, getHeaders());
-            response = restTemplate.postForEntity(config.getLogin().getGetLoginPath(),entity, LoginResponseDTO.class);
+            response = restTemplate.postForEntity(config.getLogin().getLoginPath(),entity, LoginResponseDTO.class);
             log.info(""+ response);
         } catch (HttpClientErrorException e) {
             TenpoException exception = buildTenpoException(e);
@@ -64,7 +64,7 @@ public class LoginRestClientImpl implements LoginRestClient {
     private HttpHeaders getHeaders() {
         HttpHeaders headers = new HttpHeaders();
         String API_KEY_HEADER = "Ocp-Apim-Subscription-Key";
-        headers.set(API_KEY_HEADER, config.getLogin().getGetApiKey());
+        //headers.set(API_KEY_HEADER, config.getLogin().getApiKey());
         headers.setContentType(MediaType.APPLICATION_JSON);
         return headers;
     }
