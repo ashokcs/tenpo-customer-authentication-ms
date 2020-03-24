@@ -69,3 +69,14 @@ spec:
   ports:
     - port: 8080
 ---
+kind: Service
+apiVersion: v1
+metadata:
+  name: login-ms
+  namespace: customer-authentication
+spec:
+  type: ExternalName
+  externalName: login-ms.tenpo-login.svc.cluster.local
+  ports:
+    - port: 8080
+---
