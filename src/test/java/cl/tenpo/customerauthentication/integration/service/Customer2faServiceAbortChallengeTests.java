@@ -3,13 +3,13 @@ package cl.tenpo.customerauthentication.integration.service;
 import cl.tenpo.customerauthentication.CustomerAuthenticationMsApplicationTests;
 import cl.tenpo.customerauthentication.api.dto.AbortChallengeRequest;
 import cl.tenpo.customerauthentication.api.dto.AbortChallengeResponse;
-import cl.tenpo.customerauthentication.api.dto.ValidateChallengeRequest;
-import cl.tenpo.customerauthentication.api.dto.ValidateChallengeResponse;
 import cl.tenpo.customerauthentication.constants.ErrorCode;
 import cl.tenpo.customerauthentication.database.entity.CustomerTransactionContextEntity;
 import cl.tenpo.customerauthentication.database.repository.CustomerChallengeRepository;
 import cl.tenpo.customerauthentication.database.repository.CustomerTransactionContextRespository;
 import cl.tenpo.customerauthentication.exception.TenpoException;
+import cl.tenpo.customerauthentication.externalservice.kafka.EventProducerService;
+import cl.tenpo.customerauthentication.externalservice.kafka.dto.LockUnlockUserDto;
 import cl.tenpo.customerauthentication.externalservice.user.UserRestClient;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserResponse;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserStateType;
@@ -19,6 +19,7 @@ import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
 import cl.tenpo.customerauthentication.properties.CustomerTransactionContextProperties;
 import cl.tenpo.customerauthentication.service.Customer2faService;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -36,6 +37,7 @@ import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
@@ -63,6 +65,9 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     @MockBean
     private VerifierRestClient verifierRestClient;
 
+    @MockBean
+    private EventProducerService eventProducerService;
+
     @Before
     @After
     public void clearDB() {
@@ -89,7 +94,14 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
 
     @Test(expected = TenpoException.class)
     public void whenTrxAuthorized_ThenThrowException() {
+
         UUID userId = UUID.randomUUID();
+        // Prepare user response OK
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
 
         // Agrega la transaccion ya existente
         CustomerTransactionContextEntity savedTransactionEntity = createTransaction(userId);
@@ -115,6 +127,13 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     public void whenTrxExpiredByStatus_ThenThrowException() {
         UUID userId = UUID.randomUUID();
 
+        // Prepare user response OK
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
+
         // Agrega la transaccion ya existente
         CustomerTransactionContextEntity savedTransactionEntity = createTransaction(userId);
         savedTransactionEntity.setStatus(CustomerTransactionStatus.EXPIRED);
@@ -138,6 +157,12 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     @Test(expected = TenpoException.class)
     public void whenTrxExpiredByTime_ThenThrowException() {
         UUID userId = UUID.randomUUID();
+        // Prepare user response OK
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
 
         // Agrega la transaccion ya existente
         CustomerTransactionContextEntity savedTransactionEntity = createTransaction(userId);
@@ -168,6 +193,12 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     @Test(expected = TenpoException.class)
     public void whenTrxRejectedByStatus_ThenThrowException() {
         UUID userId = UUID.randomUUID();
+        // Prepare user response OK
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
 
         // Agrega la transaccion ya existente
         CustomerTransactionContextEntity savedTransactionEntity = createTransaction(userId);
@@ -190,8 +221,15 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     }
 
     @Test(expected = TenpoException.class)
-    public void whenTrxRejectedByAttempts_ThenThrowException() {
+    public void whenTrxRejectedByAttempts_ThenThrowException() throws JsonProcessingException {
         UUID userId = UUID.randomUUID();
+        // Prepare user response OK
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
+        doNothing().when(eventProducerService).sendLockEvent(Mockito.any(LockUnlockUserDto.class));
 
         // Agrega la transaccion ya existente
         CustomerTransactionContextEntity savedTransactionEntity = createTransaction(userId);
@@ -220,7 +258,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     }
 
     @Test
-    public void whenVerifierRestClientAnswersTrue_ThenChangeStatus() {
+    public void whenVerifierRestClientAnswersTrue_ThenChangeStatus() throws JsonProcessingException {
         UUID userId = UUID.randomUUID();
 
         // Agrega la transaccion ya existente
@@ -252,7 +290,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     }
 
     @Test
-    public void whenVerifierRestClientAnswersTrueAndStatusCancel_ThenKeepStatus() {
+    public void whenVerifierRestClientAnswersTrueAndStatusCancel_ThenKeepStatus() throws JsonProcessingException {
         UUID userId = UUID.randomUUID();
 
         // Agrega la transaccion ya existente

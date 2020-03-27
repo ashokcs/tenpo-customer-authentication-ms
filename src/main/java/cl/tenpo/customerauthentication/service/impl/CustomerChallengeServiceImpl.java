@@ -9,6 +9,8 @@ import cl.tenpo.customerauthentication.database.repository.CustomerTransactionCo
 import cl.tenpo.customerauthentication.dto.CustomerChallengeDTO;
 import cl.tenpo.customerauthentication.dto.CustomerTransactionContextDTO;
 import cl.tenpo.customerauthentication.exception.TenpoException;
+import cl.tenpo.customerauthentication.externalservice.user.UserRestClient;
+import cl.tenpo.customerauthentication.externalservice.user.dto.UserResponse;
 import cl.tenpo.customerauthentication.externalservice.verifier.VerifierRestClient;
 import cl.tenpo.customerauthentication.externalservice.verifier.dto.GenerateTwoFactorResponse;
 import cl.tenpo.customerauthentication.model.ChallengeStatus;
@@ -17,6 +19,7 @@ import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
 import cl.tenpo.customerauthentication.properties.CustomerTransactionContextProperties;
 import cl.tenpo.customerauthentication.service.Customer2faService;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,8 +58,11 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
     @Autowired
     private CustomerTransactionContextProperties transactionContextProperties;
 
+    @Autowired
+    private UserRestClient userRestClient;
+
     @Override
-    public NewCustomerChallenge createRequestedChallenge(UUID userId, CreateChallengeRequest createChallengeRequest) {
+    public NewCustomerChallenge createRequestedChallenge(UUID userId, CreateChallengeRequest createChallengeRequest) throws JsonProcessingException {
         GenerateTwoFactorResponse twoFactorResponse;
         Optional<CustomerTransactionContextDTO> customerTrx = findByExternalId(createChallengeRequest.getExternalId());
 
@@ -79,8 +85,12 @@ public class CustomerChallengeServiceImpl implements CustomerChallengeService {
                     .updated(LocalDateTime.now(ZoneId.of("UTC")))
                     .build());
         } else {
+            log.info("[login] Token Parsed");
+            UserResponse userResponseDto = userRestClient.getUser(customerTrx.get().getUserId())
+                    .orElseThrow(() -> new TenpoException(HttpStatus.NOT_FOUND, INVALID_CREDENTIALS));
             // Ya existe, se valida que este vigente
             customer2faService.validateTransactionContextStatus(customerTrx.get(), true);
+            customer2faService.validateTransactionAttempts(userResponseDto.getEmail(),customerTrx.get());
         }
 
         // Revisar si existe alguno creado hace menos de 30 segundos, del mismo tipo y estado OPEN

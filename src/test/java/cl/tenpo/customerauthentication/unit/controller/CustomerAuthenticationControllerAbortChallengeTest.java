@@ -8,6 +8,7 @@ import cl.tenpo.customerauthentication.api.dto.ValidateChallengeRequest;
 import cl.tenpo.customerauthentication.api.dto.ValidateChallengeResponse;
 import cl.tenpo.customerauthentication.model.ChallengeResult;
 import cl.tenpo.customerauthentication.service.Customer2faService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,7 +34,7 @@ public class CustomerAuthenticationControllerAbortChallengeTest extends Customer
     Customer2faService customer2faService;
 
     @Test
-    public void test() {
+    public void test() throws JsonProcessingException {
         UUID userId = UUID.randomUUID();
         AbortChallengeRequest request = AbortChallengeRequest.builder()
                 .externalId(UUID.randomUUID().toString())

@@ -17,6 +17,7 @@ import cl.tenpo.customerauthentication.model.ChallengeType;
 import cl.tenpo.customerauthentication.model.NewCustomerChallenge;
 import cl.tenpo.customerauthentication.service.Customer2faService;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -54,7 +55,7 @@ public class Customer2faServiceCreateChallengeTests extends CustomerAuthenticati
     NotificationMailProperties notificationMailProperties;
 
     @Test
-    public void createChallenge_createRequestedChallengeThrowsException_thenExceptionMustNotBeCaught() {
+    public void createChallenge_createRequestedChallengeThrowsException_thenExceptionMustNotBeCaught() throws JsonProcessingException {
         UUID userId = UUID.randomUUID();
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
         createChallengeRequest.setChallengeType(ChallengeType.OTP_MAIL);
@@ -88,7 +89,7 @@ public class Customer2faServiceCreateChallengeTests extends CustomerAuthenticati
     }
 
     @Test
-    public void createChallenge_sendEmail_allOk() {
+    public void createChallenge_sendEmail_allOk() throws JsonProcessingException {
         UUID userId = UUID.randomUUID();
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
         createChallengeRequest.setChallengeType(ChallengeType.OTP_MAIL);
@@ -131,7 +132,7 @@ public class Customer2faServiceCreateChallengeTests extends CustomerAuthenticati
     }
 
     @Test
-    public void createChallenge_sendEmailThrowsException_thenNoException() {
+    public void createChallenge_sendEmailThrowsException_thenNoException() throws JsonProcessingException {
         UUID userId = UUID.randomUUID();
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
         createChallengeRequest.setChallengeType(ChallengeType.OTP_MAIL);

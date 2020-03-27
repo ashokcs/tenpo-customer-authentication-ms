@@ -8,6 +8,11 @@ import cl.tenpo.customerauthentication.database.entity.CustomerTransactionContex
 import cl.tenpo.customerauthentication.database.repository.CustomerChallengeRepository;
 import cl.tenpo.customerauthentication.database.repository.CustomerTransactionContextRespository;
 import cl.tenpo.customerauthentication.exception.TenpoException;
+import cl.tenpo.customerauthentication.externalservice.kafka.EventProducerService;
+import cl.tenpo.customerauthentication.externalservice.kafka.dto.LockUnlockUserDto;
+import cl.tenpo.customerauthentication.externalservice.user.UserRestClient;
+import cl.tenpo.customerauthentication.externalservice.user.dto.UserResponse;
+import cl.tenpo.customerauthentication.externalservice.user.dto.UserStateType;
 import cl.tenpo.customerauthentication.externalservice.verifier.VerifierRestClient;
 import cl.tenpo.customerauthentication.externalservice.verifier.dto.GenerateTwoFactorResponse;
 import cl.tenpo.customerauthentication.model.ChallengeStatus;
@@ -16,11 +21,13 @@ import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
 import cl.tenpo.customerauthentication.model.NewCustomerChallenge;
 import cl.tenpo.customerauthentication.properties.CustomerTransactionContextProperties;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -34,6 +41,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
@@ -58,6 +66,12 @@ public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthen
     @Autowired
     private CustomerTransactionContextProperties transactionContextProperties;
 
+    @MockBean
+    private UserRestClient userRestClient;
+
+    @MockBean
+    private EventProducerService eventProducerService;
+
     @Before
     @After
     public void clearDB() {
@@ -66,7 +80,7 @@ public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthen
     }
 
     @Test
-    public void createChallenge_WhenNoTrxNoPreviousChallenge_ThenNewChallengeCreatedAndTrxCreated() {
+    public void createChallenge_WhenNoTrxNoPreviousChallenge_ThenNewChallengeCreatedAndTrxCreated() throws JsonProcessingException {
         prepareVerifierMock();
 
         UUID userId = UUID.randomUUID();
@@ -104,10 +118,17 @@ public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthen
     }
 
     @Test
-    public void createChallenge_WhenAlreadyTrxNoPreviousChallenge_ThenNewChallengeCreatedAndNoNewTrx() {
+    public void createChallenge_WhenAlreadyTrxNoPreviousChallenge_ThenNewChallengeCreatedAndNoNewTrx() throws JsonProcessingException {
         prepareVerifierMock();
 
         UUID userId = UUID.randomUUID();
+        // Prepare user response OK
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
+
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
 
         // Agrega la transaccion ya existente
@@ -148,6 +169,12 @@ public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthen
     @Test
     public void createChallenge_WhenTrxAlreadyExpiredByStatus_ThenThrowException() {
         UUID userId = UUID.randomUUID();
+        // Prepare user response OK
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
 
         // Agrega la transaccion ya existente
@@ -170,6 +197,13 @@ public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthen
     @Test
     public void createChallenge_WhenTrxAlreadyExpiredByTime_ThenThrowException() {
         UUID userId = UUID.randomUUID();
+        // Prepare user response OK
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
+
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
 
         // Agrega la transaccion PENDING pero es vieja para expirarla
@@ -197,6 +231,12 @@ public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthen
     @Test
     public void createChallenge_WhenTrxAlreadyCanceled_ThenThrowException() {
         UUID userId = UUID.randomUUID();
+        // Prepare user response OK
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
 
         // Agrega la transaccion ya existente
@@ -219,6 +259,13 @@ public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthen
     @Test
     public void createChallenge_WhenTrxAlreadyAuthorized_ThenThrowException() {
         UUID userId = UUID.randomUUID();
+        // Prepare user response OK
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
+
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
 
         // Agrega la transaccion ya existente
@@ -241,6 +288,13 @@ public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthen
     @Test
     public void createChallenge_WhenTrxAlreadyRejectedByStatus_ThenThrowException() {
         UUID userId = UUID.randomUUID();
+
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
+
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
 
         // Agrega la transaccion ya existente
@@ -261,8 +315,18 @@ public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthen
     }
 
     @Test
-    public void createChallenge_WhenTrxAlreadyRejectedByAttempts_ThenThrowException() {
+    public void createChallenge_WhenTrxAlreadyRejectedByAttempts_ThenThrowException() throws JsonProcessingException {
         UUID userId = UUID.randomUUID();
+
+        doNothing()
+                .when(eventProducerService).sendLockEvent(Mockito.any(LockUnlockUserDto.class));
+
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
+
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
 
         // Agrega la transaccion PENDING pero con muchos intentos
@@ -270,7 +334,6 @@ public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthen
         savedTransactionEntity.setStatus(CustomerTransactionStatus.PENDING);
         savedTransactionEntity.setAttempts(4);
         customerTransactionContextRespository.save(savedTransactionEntity);
-
         // Test
         try {
             customerChallengeService.createRequestedChallenge(userId, createChallengeRequest);
@@ -284,10 +347,17 @@ public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthen
     }
 
     @Test
-    public void createChallenge_whenPreviousChallengeRecentAndValid_ThenReuse() {
+    public void createChallenge_whenPreviousChallengeRecentAndValid_ThenReuse() throws JsonProcessingException {
         prepareVerifierMock();
 
         UUID userId = UUID.randomUUID();
+        // Prepare user response OK
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
+
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
 
         // Agrega la transaccion ya existente
@@ -323,10 +393,17 @@ public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthen
     }
 
     @Test
-    public void createChallenge_whenPreviousChallengeRecentButExpired_ThenCreateNew() {
+    public void createChallenge_whenPreviousChallengeRecentButExpired_ThenCreateNew() throws JsonProcessingException {
         prepareVerifierMock();
 
         UUID userId = UUID.randomUUID();
+        // Prepare user response OK
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
+
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
 
         // Agrega la transaccion ya existente
@@ -356,10 +433,17 @@ public class CustomerChallengeServiceCreateChallengeTests extends CustomerAuthen
     }
 
     @Test
-    public void createChallenge_whenPreviousChallengeTooOldAndValid_ThenCreateNew() {
+    public void createChallenge_whenPreviousChallengeTooOldAndValid_ThenCreateNew() throws JsonProcessingException {
         prepareVerifierMock();
 
         UUID userId = UUID.randomUUID();
+        // Prepare user response OK
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
+
         CreateChallengeRequest createChallengeRequest = randomChallengeRequest();
 
         // Agrega la transaccion ya existente
