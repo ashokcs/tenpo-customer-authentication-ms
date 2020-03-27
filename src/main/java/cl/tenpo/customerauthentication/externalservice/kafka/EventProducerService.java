@@ -23,5 +23,6 @@ public class EventProducerService {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
         this.kafkaTemplate.send(USER_LOGIN_LOCK_PASSWORD, objectMapper.writeValueAsString(lockUnlockUserDto));
+        log.info("[sendLockEvent] -> Sent");
     }
 }

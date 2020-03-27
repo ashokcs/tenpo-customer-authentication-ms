@@ -17,6 +17,9 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 
+import static cl.tenpo.customerauthentication.constants.ErrorCode.BLOCKED_PASSWORD;
+import static cl.tenpo.customerauthentication.constants.ErrorCode.INVALID_CREDENTIALS;
+
 @Component
 @Slf4j
 public class LoginRestClientImpl implements LoginRestClient {
@@ -48,7 +51,14 @@ public class LoginRestClientImpl implements LoginRestClient {
 
     private  TenpoException buildTenpoException(HttpClientErrorException e) {
         ErrorResponse result = getException(e.getResponseBodyAsString());
-        return new TenpoException(e.getStatusCode(), result.getCode(), result.getMessage());
+        switch (result.getCode()){
+            case 1001:
+                return new TenpoException(HttpStatus.NOT_FOUND, INVALID_CREDENTIALS);
+            case 1002:
+                return new TenpoException(HttpStatus.NOT_FOUND, BLOCKED_PASSWORD);
+            default:
+                return new TenpoException(HttpStatus.NOT_FOUND, INVALID_CREDENTIALS);
+        }
     }
     public ErrorResponse getException(String errorException) {
         ErrorResponse result;
