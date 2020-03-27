@@ -6,6 +6,8 @@ import cl.tenpo.customerauthentication.api.dto.ValidateChallengeResponse;
 import cl.tenpo.customerauthentication.constants.ErrorCode;
 import cl.tenpo.customerauthentication.dto.CustomerTransactionContextDTO;
 import cl.tenpo.customerauthentication.exception.TenpoException;
+import cl.tenpo.customerauthentication.externalservice.kafka.EventProducerService;
+import cl.tenpo.customerauthentication.externalservice.kafka.dto.LockUnlockUserDto;
 import cl.tenpo.customerauthentication.externalservice.user.UserRestClient;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserResponse;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserStateType;
@@ -15,6 +17,7 @@ import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
 import cl.tenpo.customerauthentication.properties.CustomerTransactionContextProperties;
 import cl.tenpo.customerauthentication.service.Customer2faService;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,6 +36,7 @@ import java.util.UUID;
 import static cl.tenpo.customerauthentication.constants.ErrorCode.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
@@ -54,8 +58,11 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     @Autowired
     private CustomerTransactionContextProperties transactionContextProperties;
 
+    @MockBean
+    private EventProducerService eventProducerService;
+
     @Test(expected = TenpoException.class)
-    public void validateChallengeExternalNotFound(){
+    public void validateChallengeExternalNotFound() throws JsonProcessingException {
         when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.empty());
         try{
@@ -70,7 +77,13 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     }
 
     @Test(expected = TenpoException.class)
-    public void validateChallengeTrxContextAlreadyAuthorized() {
+    public void validateChallengeTrxContextAlreadyAuthorized() throws JsonProcessingException {
+
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(UUID.randomUUID());
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.AUTHORIZED);
@@ -90,7 +103,14 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     }
 
     @Test(expected = TenpoException.class)
-    public void validateChallengeTrxContextAlreadyCanceled() {
+    public void validateChallengeTrxContextAlreadyCanceled() throws JsonProcessingException {
+
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(UUID.randomUUID());
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
+
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.CANCEL);
@@ -110,7 +130,14 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     }
 
     @Test(expected = TenpoException.class)
-    public void validateChallengeTrxContextAlreadyExpiredByStatus() {
+    public void validateChallengeTrxContextAlreadyExpiredByStatus() throws JsonProcessingException {
+
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(UUID.randomUUID());
+        userResponse.setState(UserStateType.ACTIVE);
+
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.EXPIRED);
@@ -130,7 +157,13 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     }
 
     @Test(expected = TenpoException.class)
-    public void validateChallengeTrxContextAlreadyExpiredByTime() {
+    public void validateChallengeTrxContextAlreadyExpiredByTime() throws JsonProcessingException {
+
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(UUID.randomUUID());
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setCreated(LocalDateTime.now(ZoneId.of("UTC")).minusMinutes(transactionContextProperties.getExpirationTimeInMinutes() + 1));
@@ -150,7 +183,14 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     }
 
     @Test(expected = TenpoException.class)
-    public void validateChallengeTrxContextRejectedByStatus() {
+    public void validateChallengeTrxContextRejectedByStatus() throws JsonProcessingException {
+        UUID userId = UUID.randomUUID();
+
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.REJECTED);
@@ -160,7 +200,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
         try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
             validateChallengeRequest.setExternalId(UUID.randomUUID().toString());
-            customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
+            customer2faService.validateChallenge(userId, validateChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
             Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.UNPROCESSABLE_ENTITY, e.getCode());
@@ -170,7 +210,15 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     }
 
     @Test(expected = TenpoException.class)
-    public void validateChallengeTrxContextRejectedByAttempts() {
+    public void validateChallengeTrxContextRejectedByAttempts() throws JsonProcessingException {
+
+        UUID userId = UUID.randomUUID();
+
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(userId);
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setAttempts(transactionContextProperties.getPasswordAttempts() + 1);
@@ -180,7 +228,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
         try {
             ValidateChallengeRequest validateChallengeRequest = new ValidateChallengeRequest();
             validateChallengeRequest.setExternalId(UUID.randomUUID().toString());
-            customer2faService.validateChallenge(UUID.randomUUID(), validateChallengeRequest);
+            customer2faService.validateChallenge(userId, validateChallengeRequest);
             Assert.fail("Can't be here");
         } catch (TenpoException e) {
             Assert.assertEquals("HttpStatus debe ser igual", HttpStatus.UNPROCESSABLE_ENTITY, e.getCode());
@@ -190,7 +238,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     }
 
     @Test(expected = TenpoException.class)
-    public void validateChallengeUserRestClientException() {
+    public void validateChallengeUserRestClientException() throws JsonProcessingException {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         when(customerChallengeService.findByExternalId(anyString()))
@@ -212,7 +260,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     }
 
     @Test(expected = TenpoException.class)
-    public void validateChallengeUserNotFound() {
+    public void validateChallengeUserNotFound() throws JsonProcessingException {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         when(customerChallengeService.findByExternalId(anyString()))
@@ -234,7 +282,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     }
 
     @Test(expected = TenpoException.class)
-    public void validateChallengeUserNoActive() {
+    public void validateChallengeUserNoActive() throws JsonProcessingException {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         when(customerChallengeService.findByExternalId(anyString()))
@@ -260,7 +308,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     }
 
     @Test
-    public void validateChallengeVerifierRestThrowsException() {
+    public void validateChallengeVerifierRestThrowsException() throws JsonProcessingException {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         when(customerChallengeService.findByExternalId(anyString()))
@@ -289,7 +337,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     }
 
     @Test
-    public void validateChallengeOK() {
+    public void validateChallengeOK() throws JsonProcessingException {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         when(customerChallengeService.findByExternalId(anyString()))
@@ -320,7 +368,7 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     }
 
     @Test
-    public void validateChallengeFalse() {
+    public void validateChallengeFalse() throws JsonProcessingException {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         when(customerChallengeService.findByExternalId(anyString()))
@@ -351,11 +399,14 @@ public class Customer2faServiceValidateChallengeTests extends CustomerAuthentica
     }
 
     @Test (expected = TenpoException.class)
-    public void validateChallengeFalseThrowsBlockedPasswordException() {
+    public void validateChallengeFalseThrowsBlockedPasswordException() throws JsonProcessingException {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
+
+        doNothing()
+                .when(eventProducerService).sendLockEvent(Mockito.any(LockUnlockUserDto.class));
 
         CustomerTransactionContextDTO attemptedTransaction = createTransaction();
         attemptedTransaction.setAttempts(transactionContextProperties.getPasswordAttempts()); // Este es su ultimo intento

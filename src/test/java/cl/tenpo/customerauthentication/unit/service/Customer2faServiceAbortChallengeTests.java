@@ -6,6 +6,8 @@ import cl.tenpo.customerauthentication.api.dto.AbortChallengeRequest;
 import cl.tenpo.customerauthentication.api.dto.AbortChallengeResponse;
 import cl.tenpo.customerauthentication.dto.CustomerTransactionContextDTO;
 import cl.tenpo.customerauthentication.exception.TenpoException;
+import cl.tenpo.customerauthentication.externalservice.kafka.EventProducerService;
+import cl.tenpo.customerauthentication.externalservice.kafka.dto.LockUnlockUserDto;
 import cl.tenpo.customerauthentication.externalservice.user.UserRestClient;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserResponse;
 import cl.tenpo.customerauthentication.externalservice.user.dto.UserStateType;
@@ -14,9 +16,11 @@ import cl.tenpo.customerauthentication.model.CustomerTransactionStatus;
 import cl.tenpo.customerauthentication.properties.CustomerTransactionContextProperties;
 import cl.tenpo.customerauthentication.service.Customer2faService;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -31,6 +35,7 @@ import java.util.UUID;
 import static cl.tenpo.customerauthentication.constants.ErrorCode.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
@@ -46,11 +51,14 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     @MockBean
     private UserRestClient userRestClient;
 
+    @MockBean
+    private EventProducerService eventProducerService;
+
     @Autowired
     private CustomerTransactionContextProperties transactionContextProperties;
 
     @Test(expected = TenpoException.class)
-    public void abortChallengeExtenalNotFound(){
+    public void abortChallengeExtenalNotFound() throws JsonProcessingException {
         when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.empty());
         try{
@@ -65,7 +73,13 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     }
 
     @Test(expected = TenpoException.class)
-    public void abortChallengeTransactionAuthorized() {
+    public void abortChallengeTransactionAuthorized() throws JsonProcessingException {
+
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(UUID.randomUUID());
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.AUTHORIZED);
@@ -85,7 +99,13 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     }
 
     @Test(expected = TenpoException.class)
-    public void abortChallengeTransactionExpiredByStatus() {
+    public void abortChallengeTransactionExpiredByStatus() throws JsonProcessingException {
+
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(UUID.randomUUID());
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.EXPIRED);
@@ -105,7 +125,13 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     }
 
     @Test(expected = TenpoException.class)
-    public void abortChallengeTransactionExpiredByTime() {
+    public void abortChallengeTransactionExpiredByTime() throws JsonProcessingException {
+
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(UUID.randomUUID());
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setCreated(LocalDateTime.now(ZoneId.of("UTC")).minusMinutes(transactionContextProperties.getExpirationTimeInMinutes() + 1));
@@ -125,7 +151,13 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     }
 
     @Test(expected = TenpoException.class)
-    public void abortChallengeTransactionRejectedByStatus() {
+    public void abortChallengeTransactionRejectedByStatus() throws JsonProcessingException {
+
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(UUID.randomUUID());
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
 
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.REJECTED);
@@ -145,8 +177,15 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     }
 
     @Test(expected = TenpoException.class)
-    public void abortChallengeTransactionRejectedByAttemps() {
+    public void abortChallengeTransactionRejectedByAttemps() throws JsonProcessingException {
 
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(UUID.randomUUID());
+        userResponse.setState(UserStateType.ACTIVE);
+        when(userRestClient.getUser(Mockito.any(UUID.class)))
+                .thenReturn(Optional.of(userResponse));
+        doNothing()
+                .when(eventProducerService).sendLockEvent(Mockito.any(LockUnlockUserDto.class));
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.PENDING);
         customerTransactionContextDTO.setAttempts(transactionContextProperties.getPasswordAttempts() + 1);
@@ -166,7 +205,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     }
 
     @Test(expected = TenpoException.class)
-    public void abortChallengeUserRestClientThrowsException() {
+    public void abortChallengeUserRestClientThrowsException() throws JsonProcessingException {
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
@@ -187,7 +226,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     }
 
     @Test(expected = TenpoException.class)
-    public void abortChallengeUserNotFound() {
+    public void abortChallengeUserNotFound() throws JsonProcessingException {
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
@@ -208,7 +247,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     }
 
     @Test(expected = TenpoException.class)
-    public void abortChallengeUserNoActive() {
+    public void abortChallengeUserNoActive() throws JsonProcessingException {
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
@@ -233,7 +272,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     }
 
     @Test
-    public void abortChallengeOK() {
+    public void abortChallengeOK() throws JsonProcessingException {
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         when(customerChallengeService.findByExternalId(anyString()))
                 .thenReturn(Optional.of(customerTransactionContextDTO));
@@ -263,7 +302,7 @@ public class Customer2faServiceAbortChallengeTests extends CustomerAuthenticatio
     }
 
     @Test
-    public void abortCancelledChallengeOK() {
+    public void abortCancelledChallengeOK() throws JsonProcessingException {
         CustomerTransactionContextDTO customerTransactionContextDTO = createTransaction();
         customerTransactionContextDTO.setStatus(CustomerTransactionStatus.CANCEL); // Challenge ya cancelado
         when(customerChallengeService.findByExternalId(anyString()))

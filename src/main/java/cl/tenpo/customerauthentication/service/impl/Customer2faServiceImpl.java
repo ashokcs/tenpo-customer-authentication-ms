@@ -6,6 +6,8 @@ import cl.tenpo.customerauthentication.dto.CustomerTransactionContextDTO;
 import cl.tenpo.customerauthentication.dto.JwtDTO;
 import cl.tenpo.customerauthentication.exception.TenpoException;
 import cl.tenpo.customerauthentication.externalservice.cards.CardRestClient;
+import cl.tenpo.customerauthentication.externalservice.kafka.EventProducerService;
+import cl.tenpo.customerauthentication.externalservice.kafka.dto.LockUnlockUserDto;
 import cl.tenpo.customerauthentication.externalservice.login.LoginRestClient;
 import cl.tenpo.customerauthentication.externalservice.login.dto.LoginRequestDTO;
 import cl.tenpo.customerauthentication.externalservice.login.dto.LoginResponseDTO;
@@ -26,6 +28,7 @@ import cl.tenpo.customerauthentication.properties.NotificationMailProperties;
 import cl.tenpo.customerauthentication.service.Customer2faService;
 import cl.tenpo.customerauthentication.service.CustomerChallengeService;
 import cl.tenpo.customerauthentication.util.JwtUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -74,6 +77,9 @@ public class Customer2faServiceImpl implements Customer2faService {
     @Autowired
     private LoginRestClient loginRestClient;
 
+    @Autowired
+    private EventProducerService eventProducerService;
+
 
     @Override
     public LoginResponseDTO login(CustomerLoginRequest request) throws IOException, ParseException {
@@ -118,7 +124,7 @@ public class Customer2faServiceImpl implements Customer2faService {
     }
 
     @Override
-    public void createChallenge(UUID userId, CreateChallengeRequest request) {
+    public void createChallenge(UUID userId, CreateChallengeRequest request) throws JsonProcessingException {
         log.info(String.format("[createChallenge] Challenge request for user %s [%s]", userId, request));
 
         // Validar que el usuario no esta bloqueado
@@ -135,7 +141,7 @@ public class Customer2faServiceImpl implements Customer2faService {
     }
 
     @Override
-    public ValidateChallengeResponse validateChallenge(UUID userId, ValidateChallengeRequest request) {
+    public ValidateChallengeResponse validateChallenge(UUID userId, ValidateChallengeRequest request) throws JsonProcessingException {
         log.info(String.format("[validateChallenge] Validate challenge request for user %s [%s]", userId, request));
 
         //Verifica que exista ese context id
@@ -145,13 +151,15 @@ public class Customer2faServiceImpl implements Customer2faService {
             throw new TenpoException(HttpStatus.NOT_FOUND, EXTERNAL_ID_NOT_FOUND);
         }
 
-        // Valida el estado de la trx
-        validateTransactionContextStatus(customerTransactionContextDTO.get(), true);
-        log.info("[validateChallenge] Transaccion validada: [{}]", customerTransactionContextDTO.get().getId());
-
         // Validar que el usuario no esta bloqueado
         UserResponse userResponse = getAndValidateUser(userId);
         log.info("[validateChallenge] Usuario validado: [{}]", userResponse.getTributaryIdentifier());
+
+        // Valida el estado de la trx
+        validateTransactionContextStatus(customerTransactionContextDTO.get(), true);
+        validateTransactionAttempts(userResponse.getEmail(), customerTransactionContextDTO.get());
+        log.info("[validateChallenge] Transaccion validada: [{}]", customerTransactionContextDTO.get().getId());
+
 
         // Verifica el codigo.
         boolean verifierResponse = verifierRestClient.validateTwoFactorCode(userId, request.getResponse());
@@ -168,7 +176,10 @@ public class Customer2faServiceImpl implements Customer2faService {
             customerTransactionContextDTO = customerChallengeService.addTransactionContextAttempt(customerTransactionContextDTO.get().getId());
 
             // Verifica la cantidad de intentos y actualiza status de la trx
-            customerTransactionContextDTO.ifPresent(this::validateTransactionAttempts);
+            if(customerTransactionContextDTO.isPresent()){
+                validateTransactionAttempts(userResponse.getEmail(),
+                        customerTransactionContextDTO.get());
+            }
 
             return ValidateChallengeResponse.builder()
                     .result(ChallengeResult.AUTH_FALLIDA)
@@ -177,17 +188,20 @@ public class Customer2faServiceImpl implements Customer2faService {
     }
 
     @Override
-    public AbortChallengeResponse abortChallenge(UUID userId, AbortChallengeRequest request) {
+    public AbortChallengeResponse abortChallenge(UUID userId, AbortChallengeRequest request) throws JsonProcessingException {
 
         CustomerTransactionContextDTO customerTransactionContextDTO = customerChallengeService.findByExternalId(request.getExternalId())
                 .orElseThrow(() -> new TenpoException(HttpStatus.NOT_FOUND, EXTERNAL_ID_NOT_FOUND));
                // Valida el estado de la trx, excepto si ya esta cancelada
-        validateTransactionContextStatus(customerTransactionContextDTO, false);
-        log.info("[abortResponse] Transaccion validada: [{}]", customerTransactionContextDTO.getId());
 
         // Validar que el usuario no esta bloqueado
         UserResponse userResponse = getAndValidateUser(userId);
         log.info("[abortResponse] Usuario validado: [{}]", userResponse.getTributaryIdentifier());
+
+        validateTransactionContextStatus(customerTransactionContextDTO, false);
+        validateTransactionAttempts(userResponse.getEmail(), customerTransactionContextDTO);
+        log.info("[abortResponse] Transaccion validada: [{}]", customerTransactionContextDTO.getId());
+
 
         // Marcar estado como cancelado
         customerTransactionContextDTO = customerChallengeService.updateTransactionContextStatus(customerTransactionContextDTO.getId(), CustomerTransactionStatus.CANCEL)
@@ -280,6 +294,7 @@ public class Customer2faServiceImpl implements Customer2faService {
         return mailParam;
     }
 
+    @Override
     public void validateTransactionContextStatus(CustomerTransactionContextDTO transactionContextDTO, boolean validateCanceled) {
 
         // Retorno cuando la trx ya fue autorizada previamente
@@ -303,11 +318,10 @@ public class Customer2faServiceImpl implements Customer2faService {
             throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, TRANSACTION_CONTEXT_EXPIRED);
         }
 
-        // Verifica numero de intentos de validar el codigo
-        validateTransactionAttempts(transactionContextDTO);
     }
 
-    private void validateTransactionAttempts(CustomerTransactionContextDTO transactionContextDTO) {
+    @Override
+    public void validateTransactionAttempts(String email, CustomerTransactionContextDTO transactionContextDTO) throws JsonProcessingException {
         // Retorno cuando la trx fue rechazada por intentos
         if (transactionContextDTO.getStatus().equals(CustomerTransactionStatus.REJECTED)) {
             throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, BLOCKED_PASSWORD);
@@ -315,7 +329,14 @@ public class Customer2faServiceImpl implements Customer2faService {
 
         // Verifica la cantidad de intentos y actualiza status de la trx
         if (transactionContextDTO.getAttempts() >= transactionContextProperties.getPasswordAttempts()) {
+            log.info("[validateTransactionAttempts] Rejected by Attempts");
             customerChallengeService.updateTransactionContextStatus(transactionContextDTO.getId(), CustomerTransactionStatus.REJECTED);
+            eventProducerService.sendLockEvent(LockUnlockUserDto
+                    .builder()
+                    .email(email)
+                    .attemp(4)
+                    .build());
+            log.info("[validateTransactionAttempts] Sending Lock Password Evt");
             throw new TenpoException(HttpStatus.UNPROCESSABLE_ENTITY, BLOCKED_PASSWORD);
         }
     }

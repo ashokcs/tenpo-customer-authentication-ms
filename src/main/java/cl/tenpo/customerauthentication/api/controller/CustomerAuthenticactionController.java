@@ -5,6 +5,7 @@ import cl.tenpo.customerauthentication.api.dto.CreateChallengeRequest;
 import cl.tenpo.customerauthentication.api.dto.CustomerLoginRequest;
 import cl.tenpo.customerauthentication.api.dto.ValidateChallengeRequest;
 import cl.tenpo.customerauthentication.service.Customer2faService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -30,20 +31,20 @@ public class CustomerAuthenticactionController {
     }
 
     @PostMapping(value="/2fa")
-    public ResponseEntity createChallenge(@RequestHeader("x-mine-user-id") UUID userId, @RequestBody CreateChallengeRequest request) {
+    public ResponseEntity createChallenge(@RequestHeader("x-mine-user-id") UUID userId, @RequestBody CreateChallengeRequest request) throws JsonProcessingException {
         log.info("[createChallenge] IN");
         customer2faService.createChallenge(userId, request);
         return new ResponseEntity(HttpStatus.CREATED);
     }
 
     @PutMapping(value = "/2fa")
-    public ResponseEntity validateChallenge(@RequestHeader("x-mine-user-id") UUID userId, @RequestBody ValidateChallengeRequest request) {
+    public ResponseEntity validateChallenge(@RequestHeader("x-mine-user-id") UUID userId, @RequestBody ValidateChallengeRequest request) throws JsonProcessingException {
         log.info("[validateChallenge] IN");
         return ResponseEntity.status(HttpStatus.CREATED).body(customer2faService.validateChallenge(userId, request));
     }
 
     @DeleteMapping(value = "/2fa")
-    public ResponseEntity abortChallenge(@RequestHeader("x-mine-user-id") UUID userId, @RequestBody AbortChallengeRequest request) {
+    public ResponseEntity abortChallenge(@RequestHeader("x-mine-user-id") UUID userId, @RequestBody AbortChallengeRequest request) throws JsonProcessingException {
         log.info("[abortChallenge] IN");
         return ResponseEntity.status(HttpStatus.CREATED).body(customer2faService.abortChallenge(userId, request));
     }

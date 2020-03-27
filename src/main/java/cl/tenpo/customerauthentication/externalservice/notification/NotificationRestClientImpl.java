@@ -48,6 +48,7 @@ public class NotificationRestClientImpl implements NotificationRestClient {
         }
     }
 
+    @Async("taskExecutor")
     @Override
     public void sendEmail(EmailDto emailRequest){
         try {
