@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: customer-authentication
+
+encrypt:
+  key-store:
+    secret: m1cR053rv1535

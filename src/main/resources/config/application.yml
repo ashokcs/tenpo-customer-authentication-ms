@@ -1,0 +1,51 @@
+spring:
+  profiles:
+    active: local
+  datasource:
+    driverClassName: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      idle-timeout: 10000
+      connection-timeout: 30000
+      auto-commit: false
+      pool-name: engine_pool_verifier
+      minimum-idle: 5
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          lob:
+            non_contextual_creation: true
+        default_schema: customer_authentication
+kafka:
+  listen:
+    auto:
+      start: true
+
+logging.level:
+  cl.tenpo.customerauthentication: DEBUG
+
+constants:
+  notifications:
+    twoFactorMailFrom: 'authentication@tenpo.cl'
+    twoFactorMailSubject: 'Código verificación'
+    twoFactorMailTemplate: '4c8f1b4c-02d0-4048-a50b-c39f5050ae3a'
+  transaction-context:
+    expirationTimeInMinutes: 10
+    passwordAttempts: 4
+    challengeReuseTimeInSeconds: 30
+
+krealo:
+  security:
+    disabledFor:
+      - /**
+  external:
+    api:
+      freshdesk:
+        implement: real
