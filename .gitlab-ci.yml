@@ -1,0 +1,187 @@
+stages:
+  - test
+  - build
+  - docker
+  - deploy
+
+variables:
+  MAVEN_CLI_OPTS: "--batch-mode"
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+
+
+test:
+  stage: test
+  image: java:8-alpine
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .m2/repository/
+      - target/*.jar
+  before_script:
+    - chmod +x mvnw
+  script:
+    - ./mvnw $MAVEN_CLI_OPTS $MAVEN_OPTS clean test -Dmaven.test.skip=false -Djacoco-skip=false
+  except:
+    - develop
+    - uat
+    - master
+
+build:
+  stage: build
+  image: java:8-alpine
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .m2/repository/
+      - target/*.jar
+  before_script:
+    - chmod +x mvnw
+  script:
+    - ./mvnw $MAVEN_CLI_OPTS $MAVEN_OPTS clean package -Dmaven.test.skip=true -Djacoco-skip=true
+  only:
+    - develop
+    - uat
+    - master
+
+docker:
+  stage: docker
+  image: docker:19
+  services:
+    - docker:dind
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .m2/repository/
+      - target/*.jar
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
+  only:
+    - develop
+    - uat
+
+docker_prod:
+  stage: docker
+  image: docker:19
+  services:
+    - docker:dind
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .m2/repository/
+      - target/*.jar
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -f Dockerfile.prod -t $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
+  only:
+    - master
+
+dev_kiuwan_analysis:
+  stage: build
+  image: registry.gitlab.com/tenpo/devsecops/security/kiuwan-agent:latest
+  variables:
+    KIUWAN_USER: $KIUWAN_USER #Kiuwan user name (globally scoped)
+    KIUWAN_PASSWORD: $KIUWAN_PASSWORD #Kiuwan password (globally scoped)
+    PROJECT_NAME: $CI_PROJECT_NAME #Current project name (automatically initialized by Gitlab CI)
+    TARGET_DIR: $CI_PROJECT_DIR #Current working directory (automatically initialized by Gitlab CI)
+    BUILD_ID: $CI_JOB_ID #Current project job ID (automatically initialized by Gitlab CI)
+  script:
+    - baseline
+  only:
+    - develop
+
+dev_deployment:
+  stage: deploy
+  image: registry.gitlab.com/krealomine/deploy_k8s_azure:latest
+  environment:
+    name: dev
+  variables:
+    SPRING_PROFILES_ACTIVE: cloud,dev
+    REGISTRY: customer-authentication
+    IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
+    NAMESPACE: customer-authentication
+  script:
+    - kubectl apply -f customer-authentication-namespace.yaml
+    - sed -i "s|_SPRING_PROFILES_ACTIVE_|$SPRING_PROFILES_ACTIVE|g" customer-authentication-deployment.yaml
+    - sed -i "s|_IMAGE_|$IMAGE|g" customer-authentication-deployment.yaml
+    - >
+      kubectl create secret docker-registry $REGISTRY \
+        --namespace=$NAMESPACE \
+        --dry-run=true \
+        --docker-server=$CI_REGISTRY \
+        --docker-username=$CI_DEPLOY_USER \
+        --docker-password=$CI_DEPLOY_PASSWORD \
+        --docker-email=$GITLAB_USER_EMAIL -o yaml | kubectl apply -f -
+    - kubectl delete pods -l app=customer-2fa
+    - kubectl apply -f customer-authentication-deployment.yaml
+    - kubectl apply -f customer-authentication-service-dev.yaml
+  only:
+    - develop
+
+uat_deploy:
+  stage: deploy
+  image: registry.gitlab.com/krealomine/deploy_k8s_azure_uat:latest
+  environment:
+    name: uat
+  variables:
+    SPRING_PROFILES_ACTIVE: cloud,uat
+    REGISTRY: customer-authentication
+    IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
+    NAMESPACE: customer-authentication
+  script:
+    - kubectl apply -f customer-authentication-namespace.yaml
+    - sed -i "s|_SPRING_PROFILES_ACTIVE_|$SPRING_PROFILES_ACTIVE|g" customer-authentication-deployment.yaml
+    - sed -i "s|_IMAGE_|$IMAGE|g" customer-authentication-deployment.yaml
+    - >
+      kubectl create secret docker-registry $REGISTRY \
+        --namespace=$NAMESPACE \
+        --dry-run=true \
+        --docker-server=$CI_REGISTRY \
+        --docker-username=$CI_DEPLOY_USER \
+        --docker-password=$CI_DEPLOY_PASSWORD \
+        --docker-email=$GITLAB_USER_EMAIL -o yaml | kubectl apply -f -
+    - kubectl delete pods -l app=customer-authentication
+    - kubectl apply -f customer-authentication-deployment.yaml
+    - kubectl apply -f customer-authentication-service.yaml
+  only:
+    - uat
+
+prod_deploy:
+  stage: deploy
+  image: registry.gitlab.com/krealomine/deploy_k8s_azure_prod:latest
+  environment:
+    name: prod
+  variables:
+    SPRING_PROFILES_ACTIVE: cloud,prod
+    REGISTRY: customer-authentication
+    IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
+    NAMESPACE: customer-authentication
+  script:
+    - kubectl apply -f customer-authentication-namespace.yaml
+    - sed -i "s|_SPRING_PROFILES_ACTIVE_|$SPRING_PROFILES_ACTIVE|g" customer-authentication-deployment.yaml
+    - sed -i "s|_IMAGE_|$IMAGE|g" customer-authentication-deployment.yaml
+    - >
+      kubectl create secret docker-registry $REGISTRY \
+        --namespace=$NAMESPACE \
+        --dry-run=true \
+        --docker-server=$CI_REGISTRY \
+        --docker-username=$CI_DEPLOY_USER \
+        --docker-password=$CI_DEPLOY_PASSWORD \
+        --docker-email=$GITLAB_USER_EMAIL -o yaml | kubectl apply -f -
+    - kubectl delete pods -l app=customer-authentication
+    - kubectl apply -f customer-authentication-deployment.yaml
+    - kubectl apply -f customer-authentication-service.yaml
+  only:
+    - master

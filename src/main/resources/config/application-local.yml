@@ -1,0 +1,35 @@
+server:
+    port: 8090
+    pattern:
+        level: '%X{traceId} %5p'
+spring:
+    datasource:
+        driverClassName: org.postgresql.Driver
+        url: jdbc:postgresql://localhost:5432/tenpo_customer_authentication
+        username: postgres
+        password: postgres
+    flyway:
+        schemas: customer_authentication
+    jackson:
+        property-naming-strategy: SNAKE_CASE
+    jpa:
+        database-platform: org.hibernate.dialect.PostgreSQL9Dialect
+        hibernate:
+            ddl-auto: none
+        properties:
+            hibernate:
+                current_session_context_class: org.springframework.orm.hibernate5.SpringSessionContext
+                dialect: org.hibernate.dialect.PostgreSQLDialect
+                jdbc:
+                    lob:
+                        non_contextual_creation: true
+        show-sql: false
+krealo:
+    cloud:
+        login:
+            baseUrl: http://refund-ms:8080
+            loginPath: https://api.dev.tenpo.cl/public/v1/login-management/login
+            apiKey: eb7e449eb04f4fefb621d460afdc1fa5
+    security:
+        disabledFor:
+            - /**

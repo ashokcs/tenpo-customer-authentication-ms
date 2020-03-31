@@ -1,0 +1,7 @@
+FROM registry.gitlab.com/krealomine/docker_openjdk_newrelic:latest
+
+ADD https://s3.amazonaws.com/mine.metadata.dev/postgres/root.crt /root/.postgresql/
+ADD target/*.jar /opt/ms/customer-authentication-ms.jar
+
+EXPOSE 8080
+CMD java -javaagent:/opt/newrelic/newrelic.jar -jar /opt/ms/customer-authentication-ms.jar
