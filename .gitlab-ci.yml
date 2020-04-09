@@ -8,7 +8,6 @@ variables:
   MAVEN_CLI_OPTS: "--batch-mode"
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
 
-
 test:
   stage: test
   image: java:8-alpine
@@ -21,10 +20,6 @@ test:
     - chmod +x mvnw
   script:
     - ./mvnw $MAVEN_CLI_OPTS $MAVEN_OPTS clean test -Dmaven.test.skip=false -Djacoco-skip=false
-  except:
-    - develop
-    - uat
-    - master
 
 build:
   stage: build
