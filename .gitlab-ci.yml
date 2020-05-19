@@ -118,7 +118,7 @@ uat_deploy:
     SPRING_PROFILES_ACTIVE: cloud,uat
     REGISTRY: customer-authentication
     IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
-    NAMESPACE: customer-authentication
+    NAMESPACE: tenpo-webpay
   script:
     - kubectl apply -f customer-authentication-namespace.yaml
     - sed -i "s|_SPRING_PROFILES_ACTIVE_|$SPRING_PROFILES_ACTIVE|g" customer-authentication-deployment.yaml
@@ -145,7 +145,7 @@ prod_deploy:
     SPRING_PROFILES_ACTIVE: cloud,prod
     REGISTRY: customer-authentication
     IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
-    NAMESPACE: customer-authentication
+    NAMESPACE: tenpo-webpay
   script:
     - kubectl apply -f customer-authentication-namespace.yaml
     - sed -i "s|_SPRING_PROFILES_ACTIVE_|$SPRING_PROFILES_ACTIVE|g" customer-authentication-deployment.yaml
