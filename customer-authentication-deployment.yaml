@@ -9,6 +9,11 @@ metadata:
 
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
   selector:
     matchLabels:
       app: customer-2fa
@@ -32,11 +37,27 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: databasecredentials
-                  key: db_pwd_customer_authentication
+                  key: db_pwd_customer_authentication_user
           resources:
             requests:
               cpu: "100m"
             limits:
               cpu: "700m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 300
+            timeoutSeconds: 5
+            periodSeconds: 30
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 360
+            timeoutSeconds: 5
+            periodSeconds: 30
+            failureThreshold: 3
       imagePullSecrets:
         - name: customer-authentication

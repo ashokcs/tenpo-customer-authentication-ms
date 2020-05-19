@@ -8,7 +8,6 @@ variables:
   MAVEN_CLI_OPTS: "--batch-mode"
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
 
-
 test:
   stage: test
   image: java:8-alpine
@@ -21,10 +20,6 @@ test:
     - chmod +x mvnw
   script:
     - ./mvnw $MAVEN_CLI_OPTS $MAVEN_OPTS clean test -Dmaven.test.skip=false -Djacoco-skip=false
-  except:
-    - develop
-    - uat
-    - master
 
 build:
   stage: build
@@ -43,48 +38,33 @@ build:
     - uat
     - master
 
-docker:
+.docker-build:
   stage: docker
-  image: docker:19
-  services:
-    - docker:dind
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
-      - .m2/repository/
       - target/*.jar
   variables:
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_DRIVER: overlay2
+    DOCKER_FILE: Dockerfile
   before_script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
+    - cat $POSTGRES_CRT > postgres.crt
   script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA .
-    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/$DOCKER_FILE --destination $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
+
+docker:
+  extends: .docker-build
   only:
     - develop
     - uat
 
 docker_prod:
-  stage: docker
-  image: docker:19
-  services:
-    - docker:dind
-  cache:
-    key: ${CI_COMMIT_REF_SLUG}
-    paths:
-      - .m2/repository/
-      - target/*.jar
+  extends: .docker-build
   variables:
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_DRIVER: overlay2
-  before_script:
-    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
-  script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build -f Dockerfile.prod -t $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA .
-    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
+    DOCKER_FILE: Dockerfile.prod
   only:
     - master
 
@@ -124,7 +104,6 @@ dev_deployment:
         --docker-username=$CI_DEPLOY_USER \
         --docker-password=$CI_DEPLOY_PASSWORD \
         --docker-email=$GITLAB_USER_EMAIL -o yaml | kubectl apply -f -
-    - kubectl delete pods -l app=customer-2fa
     - kubectl apply -f customer-authentication-deployment.yaml
     - kubectl apply -f customer-authentication-service-dev.yaml
   only:
@@ -152,7 +131,6 @@ uat_deploy:
         --docker-username=$CI_DEPLOY_USER \
         --docker-password=$CI_DEPLOY_PASSWORD \
         --docker-email=$GITLAB_USER_EMAIL -o yaml | kubectl apply -f -
-    - kubectl delete pods -l app=customer-authentication
     - kubectl apply -f customer-authentication-deployment.yaml
     - kubectl apply -f customer-authentication-service.yaml
   only:
@@ -180,7 +158,6 @@ prod_deploy:
         --docker-username=$CI_DEPLOY_USER \
         --docker-password=$CI_DEPLOY_PASSWORD \
         --docker-email=$GITLAB_USER_EMAIL -o yaml | kubectl apply -f -
-    - kubectl delete pods -l app=customer-authentication
     - kubectl apply -f customer-authentication-deployment.yaml
     - kubectl apply -f customer-authentication-service.yaml
   only:
