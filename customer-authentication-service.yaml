@@ -2,7 +2,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: customer-authentication-ms
-  namespace: customer-authentication
+  namespace: tenpo-webpay
   annotations:
     service.beta.kubernetes.io/azure-load-balancer-internal: "true"
 spec:
@@ -18,7 +18,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: config-server-ms
-  namespace: customer-authentication
+  namespace: tenpo-webpay
 spec:
   type: ExternalName
   externalName: config-server-ms.default.svc.cluster.local
@@ -29,7 +29,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: user-ms
-  namespace: customer-authentication
+  namespace: tenpo-webpay
 spec:
   type: ExternalName
   externalName: user-ms.default.svc.cluster.local
@@ -40,7 +40,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: notification-ms
-  namespace: customer-authentication
+  namespace: tenpo-webpay
 spec:
   type: ExternalName
   externalName: notification-ms.default.svc.cluster.local
@@ -51,7 +51,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: cards-ms
-  namespace: customer-authentication
+ namespace: tenpo-webpay
 spec:
   type: ExternalName
   externalName: cards-ms.default.svc.cluster.local
@@ -62,7 +62,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: verifier-ms
-  namespace: customer-authentication
+  namespace: tenpo-webpay
 spec:
   type: ExternalName
   externalName: verifier-ms.default.svc.cluster.local
@@ -73,7 +73,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: login-ms
-  namespace: customer-authentication
+  namespace: tenpo-webpay
 spec:
   type: ExternalName
   externalName: login-ms.tenpo-login.svc.cluster.local

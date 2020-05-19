@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: customer-authentication-deployment
-  namespace: customer-authentication
+  namespace: tenpo-webpay
   labels:
     app: customer-2fa
 
