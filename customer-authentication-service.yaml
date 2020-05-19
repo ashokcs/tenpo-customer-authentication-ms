@@ -51,7 +51,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: cards-ms
- namespace: tenpo-webpay
+  namespace: tenpo-webpay
 spec:
   type: ExternalName
   externalName: cards-ms.default.svc.cluster.local
